@@ -6,12 +6,13 @@
     "default": "dark"
   },
   "colors": {
-    "primary": "#4ADE80",
-    "light": "#18E299",
-    "dark": "#16A34A"
+    "primary": "#FACC15",
+    "light": "#FACC15",
+    "dark": "#FACC15"
   },
   "background": {
-    "dark": "#0d0d0d"
+    "dark": "#0d0d0d",
+    "decoration": "gradient"
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -165,5 +166,7 @@
     "socials": {
       "github": "https://github.com/backant"
     }
-  }
+  },
+  "description": "Official Documentation of BackAnt- a tool that enables your favorite coding agent to one-shot backends.",
+  "logo": "/logo/light.svg"
 }
