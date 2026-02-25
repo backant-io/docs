@@ -6,9 +6,9 @@
     "default": "dark"
   },
   "colors": {
-    "primary": "#FACC15",
-    "light": "#FAbb00",
-    "dark": "#FAdd15"
+    "primary": "#4ADE80",
+    "light": "#FACC15",
+    "dark": "#FACC15"
   },
   "background": {
     "dark": "#0d0d0d",
@@ -168,5 +168,5 @@
     }
   },
   "description": "Official Documentation of BackAnt- a tool that enables your favorite coding agent to one-shot backends.",
-  "logo": "/logo/dark.svg"
+  "logo": "/logo/light.svg"
 }
