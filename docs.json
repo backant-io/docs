@@ -2,7 +2,9 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "BackAnt",
-  "appearance": "dark",
+  "appearance": {
+    "default": "dark"
+  },
   "colors": {
     "primary": "#4ADE80",
     "light": "#18E299",
