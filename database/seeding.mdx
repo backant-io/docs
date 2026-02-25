@@ -1,0 +1,95 @@
+---
+title: "Seeding"
+description: "Replacing mock data with real database logic in BackAnt."
+---
+
+BackAnt's code generator lets you scaffold routes with mock data so your API is immediately testable without a database. Seeding in BackAnt means replacing that generated mock data with real repository calls.
+
+## How mock data is generated
+
+When you run `ant generate route users --mock '[{"id": 1, "name": "Alice"}]'`, the generated service returns the mock data directly:
+
+```python
+# api/services/users_service.py (generated with mock)
+class UsersService:
+    def get_users(self):
+        mock_data = [{"id": 1, "name": "Alice"}]
+        return mock_data
+```
+
+## Replacing mock data with real logic
+
+Open the service file and replace the mock return with a repository call:
+
+```python
+class UsersService:
+    def get_users(self):
+        return self.users_repository.get_all_users()
+```
+
+Then implement `get_all_users()` in the repository:
+
+```python
+# api/repositories/users_repository.py
+from sqlalchemy import select
+from models.Users_model import Users
+from helper.DBSession import myDB
+
+class UsersRepository(Repository):
+    def get_all_users(self):
+        stmt = select(Users)
+        return myDB.execute(stmt).scalars().all()
+```
+
+## Seeding initial data
+
+To seed the database with initial records, add a seed function to a repository and call it from `init_db()` in `startup/Alchemy.py`:
+
+```python
+# api/repositories/users_repository.py
+def seed(self):
+    if myDB.execute(select(Users)).scalars().first():
+        return  # already seeded
+    users = [
+        Users(name="Alice", email="alice@example.com"),
+        Users(name="Bob", email="bob@example.com"),
+    ]
+    myDB.add_all(users)
+```
+
+```python
+# api/startup/Alchemy.py — inside init_db()
+def init_db():
+    import models.Users_model
+    Base.metadata.create_all(engine)
+
+    from repositories.users_repository import myUsersRepository
+    myUsersRepository.seed()
+```
+
+## Using the dry-run flag
+
+Before generating a project, you can validate a spec without creating any files:
+
+```bash
+ant generate api my-api --json api-spec.json --dry-run
+```
+
+This lets you iterate on your spec (including mock data) until it's correct, then generate for real.
+
+## Mock data formats
+
+Mock data can be any valid JSON value:
+
+```bash
+# Array of objects (most common)
+ant generate route users --mock '[{"id": 1, "name": "Alice"}]'
+
+# Single object
+ant generate route health --mock '{"status": "ok"}'
+
+# String
+ant generate route ping --mock '"pong"'
+```
+
+Mock data is embedded directly in the generated Python file as a literal — replace it with real repository calls when you are ready to connect to the database.

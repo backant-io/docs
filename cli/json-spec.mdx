@@ -1,0 +1,166 @@
+---
+title: "JSON Spec Format"
+description: "The JSON specification format for generating complete BackAnt APIs."
+---
+
+The JSON spec lets you define your entire API — routes, subroutes, HTTP methods, and mock data — in a single file. Pass it to `ant generate api` with `--json` to generate all layers at once.
+
+## Minimal valid spec
+
+```json
+{
+  "routes": {
+    "health": {
+      "type": "GET"
+    }
+  }
+}
+```
+
+This creates a single `GET /health` endpoint with a placeholder response.
+
+## Full spec structure
+
+```json
+{
+  "project": {
+    "description": "Optional project description (used in --verbose output only)"
+  },
+  "routes": {
+    "<route_name>": {
+      "type": "GET|POST|PUT|DELETE",
+      "mock": {},
+      "subroutes": {
+        "<subroute_name>": {
+          "type": "GET|POST|PUT|DELETE",
+          "mock": {}
+        }
+      }
+    }
+  }
+}
+```
+
+## Fields
+
+### `project` (optional)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `description` | string | Displayed in `--verbose` mode only. Not used in generation. |
+
+### `routes` (required)
+
+A map of route names to route configurations. Each key becomes a Flask Blueprint registered at `/<route_name>`.
+
+### Route configuration
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | HTTP method for the main route endpoint. One of `GET`, `POST`, `PUT`, `DELETE` (case-insensitive). |
+| `mock` | any JSON | No | Mock data returned by the service. If omitted, returns a placeholder string. |
+| `subroutes` | object | No | Map of subroute names to subroute configurations. |
+
+### Subroute configuration
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | HTTP method. One of `GET`, `POST`, `PUT`, `DELETE`. |
+| `mock` | any JSON | No | Mock data for this subroute. |
+
+## Mock data
+
+Mock data can be any valid JSON value:
+
+```json
+"mock": [{"id": 1, "name": "Alice"}]   // array
+"mock": {"status": "ok"}               // object
+"mock": "pong"                          // string
+"mock": 42                              // number
+"mock": true                            // boolean
+"mock": null                            // null
+```
+
+If `mock` is omitted:
+- GET routes return: `"Your <name> route is working!"`
+- POST subroutes return: `"Successfully created <subroute> for <route> with data: {data}"`
+
+## Full example
+
+```json
+{
+  "routes": {
+    "users": {
+      "type": "GET",
+      "mock": [
+        {"id": 1, "name": "Alice", "email": "alice@example.com"},
+        {"id": 2, "name": "Bob", "email": "bob@example.com"}
+      ],
+      "subroutes": {
+        "profile": {
+          "type": "GET",
+          "mock": {"id": 1, "bio": "Engineer"}
+        },
+        "create": {
+          "type": "POST",
+          "mock": {"id": 3, "name": "Charlie"}
+        }
+      }
+    },
+    "orders": {
+      "type": "GET",
+      "subroutes": {
+        "items": {"type": "GET"},
+        "submit": {"type": "POST"}
+      }
+    },
+    "health": {
+      "type": "GET",
+      "mock": {"status": "ok"}
+    }
+  }
+}
+```
+
+This generates:
+
+| Method | URL |
+|--------|-----|
+| GET | `/users` |
+| GET | `/users/profile` |
+| POST | `/users/create` |
+| GET | `/orders` |
+| GET | `/orders/items` |
+| POST | `/orders/submit` |
+| GET | `/health` |
+
+## Validation rules
+
+**Route names:**
+- Must be valid Python identifiers
+- Letters, digits, and underscores only
+- Cannot start with a digit
+- `✅ users, user_posts, api_keys` — `❌ my-route, 1users, user posts`
+
+**HTTP methods:**
+- `GET`, `POST`, `PUT`, `DELETE` only (case-insensitive)
+- `PATCH`, `HEAD`, `OPTIONS` are not supported
+
+## Validation errors
+
+All validation errors are self-descriptive:
+
+```
+Error: Spec must be a JSON object.
+Error: Key 'routes' missing at top level.
+Error: 'routes' cannot be empty.
+Error: Invalid route name 'my-route' (must be a valid Python identifier).
+Error: Invalid HTTP method 'PATCH' in route 'users' (must be GET, POST, PUT, or DELETE).
+Error: Invalid subroute name 'get-profile' in route 'users' (must be a valid Python identifier).
+```
+
+Multiple errors are collected and returned together. Use `--dry-run` to validate without generating files:
+
+```bash
+ant generate api shop --json api-spec.json --dry-run
+```

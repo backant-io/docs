@@ -1,0 +1,225 @@
+---
+title: "Architecture Concepts"
+description: "The four-layer architecture every BackAnt project follows — and why it matters."
+---
+
+Every BackAnt project enforces a strict four-layer architecture. Understanding this structure is the single most important thing before you start writing code.
+
+## The one rule
+
+```
+Business Logic → SERVICE  |  Database → REPOSITORY  |  HTTP → ROUTE
+```
+
+## Request flow
+
+```
+HTTP Request → Route → Service → Repository → Model → Database
+```
+
+Each layer has exactly one responsibility. No layer skips another.
+
+## The four layers
+
+### 1. Route — `api/routes/<name>_route.py`
+
+Routes are Flask Blueprints. They receive HTTP requests, call the service, and return a JSON response. Nothing else.
+
+```python
+from flask import Blueprint, jsonify
+from services.users_service import myUsersService
+
+users_bp = Blueprint("users", __name__, url_prefix="/users")
+
+@users_bp.get("")
+def get_users():
+    response = myUsersService.get_users()
+    return jsonify(response)
+```
+
+**Rules:**
+- No business logic
+- No database queries
+- No imports from repositories or models
+- Only import from the service layer
+
+---
+
+### 2. Service — `api/services/<name>_service.py`
+
+Services contain all business logic: validation, calculations, transformations, and orchestration. They call repositories to read and write data.
+
+```python
+from repositories.users_repository import myUsersRepository
+from helper.execution_tracking.APIException import APIException
+
+class UsersService:
+    def get_users(self):
+        return myUsersRepository.get_all_users()
+
+    def create_user(self, data):
+        if not data.get("email"):
+            raise APIException(status_code=400, message="Email required")
+        return myUsersRepository.add_user(
+            name=data["name"],
+            email=data["email"]
+        )
+
+myUsersService = UsersService()
+```
+
+**Rules:**
+- All business logic lives here
+- No direct database access (no SQLAlchemy queries)
+- Call repository methods only
+- Raise `APIException` for expected errors
+
+---
+
+### 3. Repository — `api/repositories/<name>_repository.py`
+
+Repositories own all database interaction. They extend the `Repository` base class and use `DBSession` for queries. They return model instances.
+
+```python
+from sqlalchemy import select
+from helper.DBSession import myDB
+from repositories.Repository import Repository
+from models.Users_model import Users
+
+class UsersRepository(Repository):
+    def get_all_users(self):
+        stmt = select(Users)
+        return myDB.execute(stmt).scalars().all()
+
+    def add_user(self, name: str, email: str):
+        user = Users(name=name, email=email)
+        self.add(user)
+        return user
+
+myUsersRepository = UsersRepository(myDB, myLogger)
+```
+
+**Rules:**
+- All SQLAlchemy queries live here
+- No business logic, no validation
+- Return model instances
+- Use `self.add()`, `self.delete()`, `self.add_all()` from the base class
+
+---
+
+### 4. Model — `api/models/<Name>_model.py`
+
+Models are SQLAlchemy dataclasses that define the database table schema. They inherit from `Base` and contain only column definitions.
+
+```python
+from dataclasses import dataclass
+from sqlalchemy import Column, Integer, String
+from startup.Alchemy import Base
+
+@dataclass
+class Users(Base):
+    __tablename__ = "users"
+
+    id: int = Column(Integer, primary_key=True)
+    name: str = Column(String)
+    email: str = Column(String, unique=True)
+```
+
+**Rules:**
+- No methods (except SQLAlchemy defaults)
+- No business logic
+- Column definitions only
+
+---
+
+## File naming by resource
+
+For a resource named `users`:
+
+| Layer | File |
+|-------|------|
+| Route | `api/routes/users_route.py` |
+| Service | `api/services/users_service.py` |
+| Repository | `api/repositories/users_repository.py` |
+| Model | `api/models/Users_model.py` *(capitalized)* |
+
+Generated identifiers follow the same pattern:
+
+| Identifier | Value |
+|------------|-------|
+| Blueprint | `users_bp` |
+| URL prefix | `/users` |
+| Service class | `UsersService` |
+| Service singleton | `myUsersService` |
+| Repository class | `UsersRepository` |
+| Repository singleton | `myUsersRepository` |
+| Model class | `Users` |
+| Table name | `users` |
+
+## Dependency direction
+
+```
+Route  →  Service  →  Repository  →  Model
+```
+
+Each layer only imports from the layer directly below it. Routes never import repositories. Services never import models directly.
+
+## Where does this code go?
+
+| Pattern | Layer |
+|---------|-------|
+| `if not data.get("email")` | Service |
+| `SELECT * FROM users` | Repository |
+| `Column(String, unique=True)` | Model |
+| `return jsonify(response)` | Route |
+| `@token_required` decorator | Route |
+| `raise APIException(400, "...")` | Service |
+| `self.session.commit()` | DBSession (never call directly) |
+| `logging.info(...)` | Service or Repository via `myLogger` |
+
+## Full example: creating a user
+
+**Route** receives the request and delegates:
+
+```python
+@users_bp.post("/create")
+def create_user():
+    data = request.get_json()
+    response = myUsersService.create_user(data)
+    return jsonify(response)
+```
+
+**Service** validates and orchestrates:
+
+```python
+def create_user(self, data):
+    if not data.get("email"):
+        raise APIException(400, "Email required")
+    return self.users_repository.add_user(
+        name=data["name"],
+        email=data["email"]
+    )
+```
+
+**Repository** writes to the database:
+
+```python
+def add_user(self, name: str, email: str):
+    user = Users(name=name, email=email)
+    try:
+        self.add(user)
+    except IntegrityError:
+        raise
+    return user
+```
+
+**Model** defines the table:
+
+```python
+@dataclass
+class Users(Base):
+    __tablename__ = "users"
+    id: int = Column(Integer, primary_key=True)
+    name: str = Column(String)
+    email: str = Column(String, unique=True)
+```

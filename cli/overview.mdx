@@ -1,0 +1,98 @@
+---
+title: "CLI Overview"
+description: "The ant CLI — global flags and command structure."
+---
+
+The BackAnt CLI is the `ant` command. It scaffolds Flask projects, adds routes and subroutes, and outputs machine-readable JSON for MCP and CI integrations.
+
+## Installation
+
+```bash
+pip install backant-cli
+```
+
+Verify:
+
+```bash
+ant --help
+```
+
+## Command structure
+
+```
+ant [--report] generate <subcommand> [args] [options]
+```
+
+| Subcommand | Description |
+|------------|-------------|
+| `ant generate api` | Scaffold a new Flask API project |
+| `ant generate route` | Add a route to an existing project |
+| `ant generate subroute` | Add a subroute to an existing route |
+
+## Global flags
+
+### `--report`
+
+Suppresses all human-readable output and prints a single JSON object to stdout. Designed for machine consumers — MCP servers, CI pipelines, and scripts.
+
+```bash
+ant --report generate api shop --json api-spec.json
+```
+
+Output:
+
+```json
+{
+  "status": "success",
+  "project_path": "/home/user/shop",
+  "files": [
+    "/home/user/shop/api/routes/users_route.py",
+    "/home/user/shop/api/services/users_service.py"
+  ],
+  "errors": []
+}
+```
+
+On failure:
+
+```json
+{
+  "status": "error",
+  "project_path": null,
+  "files": [],
+  "errors": ["Error: Invalid route name 'my-route' (must be a valid Python identifier)."]
+}
+```
+
+### `--help`
+
+Available on every command and subcommand:
+
+```bash
+ant --help
+ant generate --help
+ant generate api --help
+ant generate route --help
+ant generate subroute --help
+```
+
+## Quick reference
+
+```bash
+# Scaffold
+ant generate api <name>
+ant generate api <name> --json <spec>
+ant generate api <name> --json <spec> --dry-run
+ant generate api <name> --json <spec> --verbose
+
+# Add to existing project (run from project root)
+ant generate route <name>
+ant generate route <name> --mock '<json>'
+ant generate subroute <route> <subroute>
+ant generate subroute <route> <subroute> --type POST --mock '<json>'
+
+# Machine-readable output
+ant --report generate api <name> --json <spec>
+ant --report generate route <name>
+ant --report generate subroute <route> <subroute>
+```

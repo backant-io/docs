@@ -1,0 +1,90 @@
+---
+title: "Agentic Development"
+description: "Connect your AI coding agent to BackAnt via the MCP server."
+---
+
+BackAnt ships an MCP (Model Context Protocol) server that exposes the CLI as tools your AI agent can call directly. Instead of typing commands yourself, your agent scaffolds routes, generates APIs, and analyzes your project in response to natural language.
+
+## Quickstart with the wizard
+
+The fastest way to connect your agent is the BackAnt wizard. Run it from your terminal:
+
+```bash
+npx backant
+```
+
+The wizard will:
+1. Open a browser-based authorization page for you to log in to your BackAnt account
+2. Exchange the session for an OAuth access token automatically
+3. Detect installed coding agents on your machine
+4. Write the correct MCP configuration to each agent's config file
+
+## Supported agents
+
+The wizard supports automatic configuration for the following coding agents:
+
+<AccordionGroup>
+  <Accordion title="Editors & IDEs">
+    Cursor, Windsurf, VS Code, Visual Studio, JetBrains IDEs, Zed, Warp
+  </Accordion>
+  <Accordion title="AI coding tools">
+    Claude Code, Claude Desktop, Cline, Roo Code, Kilo Code, Continue, Copilot, Augment, Amp, Codex, Qodo Gen, Qwen Coder, Trae, Vibe, Crush, Kiro, OpenCode, Antigravity
+  </Accordion>
+  <Accordion title="Other">
+    Amazon Q, Bolt AI, Factory, Gemini CLI, LM Studio, Perplexity
+  </Accordion>
+</AccordionGroup>
+
+## Installation modes
+
+When prompted, choose between:
+
+| Mode | Description |
+|------|-------------|
+| **Remote (recommended)** | Connects to `https://mcp.backant.io/mcp` — no local setup required |
+| **Local** | Connects to `http://localhost:8000/mcp` — requires the MCP server running via Docker locally |
+
+## Available MCP tools
+
+Once connected, your agent has access to the following tools:
+
+| Tool | Description |
+|------|-------------|
+| `generate_api` | Scaffold a new BackAnt Flask API project |
+| `generate_route` | Add a route (+ service, repository, model) to an existing project |
+| `generate_subroute` | Add a subroute endpoint to an existing route |
+| `analyze_project` | Inspect the structure of an existing BackAnt project |
+| `validate_spec` | Validate a JSON spec without generating any files |
+| `get_project_info` | Get metadata (routes, models, docker presence) about a project |
+| `check_route_exists` | Check whether a specific route has been generated |
+
+## Available MCP resources
+
+Your agent can also read the following documentation resources directly:
+
+| Resource URI | Content |
+|--------------|---------|
+| `backant://docs/getting-started` | End-to-end quickstart guide |
+| `backant://docs/architecture` | Four-layer architecture reference |
+| `backant://docs/cli-reference` | Full CLI command reference |
+| `backant://docs/spec-format` | Annotated JSON spec format |
+| `backant://docs/report-output` | Machine-readable output schema |
+
+## Local MCP server
+
+You can run the MCP server locally using Docker Compose:
+
+```bash
+git clone https://github.com/backant/backant-mcp
+cd backant-mcp
+docker compose up -d
+```
+
+Verify it is running:
+
+```bash
+curl http://localhost:8000/health
+# {"status": "ok"}
+```
+
+Then run the wizard and select **Local** mode, or manually select **Local** in the wizard's installation mode prompt.

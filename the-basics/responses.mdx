@@ -1,0 +1,94 @@
+---
+title: "Responses"
+description: "Returning JSON responses and HTTP status codes from BackAnt routes."
+---
+
+All BackAnt routes return JSON using Flask's `jsonify()` function.
+
+## Basic JSON response
+
+```python
+from flask import jsonify
+
+@users_bp.get("")
+def get_users():
+    response = myUsersService.get_users()
+    return jsonify(response)
+```
+
+`jsonify()` accepts dicts, lists, strings, numbers, booleans, and `None`. It sets the `Content-Type` header to `application/json` automatically.
+
+## Returning SQLAlchemy models
+
+SQLAlchemy models in BackAnt are `@dataclass` classes, which means they serialize to dicts automatically when passed to `jsonify()`:
+
+```python
+@dataclass
+class Users(Base):
+    __tablename__ = "users"
+    id: int = Column(Integer, primary_key=True)
+    name: str = Column(String)
+```
+
+```python
+user = myUsersRepository.get_by_id(1)
+return jsonify(user)
+# {"id": 1, "name": "Alice"}
+```
+
+For lists of models:
+
+```python
+users = myUsersRepository.get_all_users()
+return jsonify(users)
+# [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]
+```
+
+## HTTP status codes
+
+Pass the status code as the second return value:
+
+```python
+return jsonify(response), 200   # OK (default)
+return jsonify(response), 201   # Created
+return jsonify({}), 204         # No Content
+return jsonify(response), 400   # Bad Request
+return jsonify(response), 404   # Not Found
+```
+
+## Error responses
+
+Do not construct error responses manually in routes. Raise `APIException` from the service layer and the registered error handler in `app.py` converts it to JSON automatically:
+
+```python
+# In the service:
+raise APIException(status_code=404, message="User not found")
+
+# Automatically becomes:
+# HTTP 404
+# {"message": "User not found"}
+```
+
+See [Error Handling](/the-basics/error-handling) for the full `APIException` API.
+
+## Adding response headers
+
+```python
+response = jsonify(data)
+response.headers["X-Total-Count"] = str(total)
+return response
+```
+
+## Returning empty responses
+
+For `DELETE` endpoints that return no body:
+
+```python
+return jsonify({}), 204
+```
+
+Or with a confirmation message:
+
+```python
+return jsonify({"deleted": True, "id": user_id}), 200
+```

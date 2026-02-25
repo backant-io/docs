@@ -1,0 +1,94 @@
+---
+title: "Controllers"
+description: "Routes act as controllers in BackAnt — thin HTTP handlers that delegate everything to the service layer."
+---
+
+In BackAnt, the **route layer is the controller**. Its only job is to receive an HTTP request, call the service, and return a JSON response. All logic lives in the service.
+
+## The controller pattern
+
+A correct BackAnt route function is always short:
+
+```python
+from flask import Blueprint, jsonify, request
+from services.orders_service import myOrdersService
+
+orders_bp = Blueprint("orders", __name__, url_prefix="/orders")
+
+@orders_bp.get("")
+def get_orders():
+    response = myOrdersService.get_orders()
+    return jsonify(response)
+
+@orders_bp.post("/create")
+def create_order():
+    data = request.get_json()
+    response = myOrdersService.create_order(data)
+    return jsonify(response)
+```
+
+The route:
+1. Reads input from `request` if needed
+2. Passes it to the service
+3. Returns `jsonify(response)`
+
+## What does NOT belong in a route
+
+```python
+# Wrong — business logic in the route
+@orders_bp.post("/create")
+def create_order():
+    data = request.get_json()
+    if not data.get("user_id"):       # ← belongs in service
+        return jsonify({"error": "user_id required"}), 400
+    total = sum(item["price"] for item in data["items"])  # ← belongs in service
+    order = Orders(user_id=data["user_id"], total=total)  # ← belongs in repository
+    db_session.add(order)             # ← belongs in repository
+    db_session.commit()               # ← belongs in repository
+    return jsonify(order)
+```
+
+## Protected routes
+
+Apply decorators directly to the route function. The `@token_required` decorator validates the `Authorization` header before the function runs:
+
+```python
+from decorators.token_required import token_required
+
+@orders_bp.get("")
+@token_required
+def get_orders():
+    response = myOrdersService.get_orders()
+    return jsonify(response)
+```
+
+See [Authentication](/security/authentication) for decorator details.
+
+## Returning HTTP status codes
+
+Pass the status code as the second argument to `jsonify()`:
+
+```python
+return jsonify(response), 201   # Created
+return jsonify(response), 204   # No Content
+```
+
+For error responses, raise `APIException` from the service — the error handler in `app.py` converts it to JSON automatically. See [Error Handling](/the-basics/error-handling).
+
+## Auto-generated controller structure
+
+When `ant generate route orders` runs, the generated route file looks like:
+
+```python
+from flask import Blueprint, jsonify
+from services.orders_service import myOrdersService
+
+orders_bp = Blueprint("orders", __name__, url_prefix="/orders")
+
+@orders_bp.get("")
+def orders_route():
+    response = myOrdersService.get_orders()
+    return jsonify(response)
+```
+
+Every subsequent `ant generate subroute` call appends a new endpoint function to this file.

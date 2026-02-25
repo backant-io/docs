@@ -1,97 +1,48 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Welcome to BackAnt"
+description: "Scaffold production-ready Flask REST APIs in seconds — and let AI agents build them for you."
 ---
 
-## Setting up
+BackAnt is a CLI tool and MCP server that generates complete, layered Flask API projects from a single command or a JSON spec. Every generated project follows a strict four-layer architecture (Routes → Services → Repositories → Models) so your codebase stays clean from day one.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Install the CLI" icon="terminal" href="/getting-started/installation">
+    Get `ant` installed on your machine in under a minute.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Configuration" icon="gear" href="/getting-started/configuration">
+    Set up your environment variables and database connection.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Agentic Development" icon="robot" href="/getting-started/agentic-development">
+    Connect your AI coding agent to BackAnt via MCP.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="CLI Reference" icon="book" href="/cli/overview">
+    Full reference for every `ant` command and flag.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## How it works
 
-Everything you need to create world-class documentation.
+<Steps>
+  <Step title="Scaffold a project">
+    Run `ant generate api my-api` to create a full Flask project with Docker, PostgreSQL, and a working default route.
+  </Step>
+  <Step title="Define your API with a spec">
+    Write a JSON spec describing your routes and subroutes, then pass it with `--json`. BackAnt generates every layer automatically.
+  </Step>
+  <Step title="Add routes incrementally">
+    Use `ant generate route` and `ant generate subroute` to extend your project at any time from the project root.
+  </Step>
+  <Step title="Run with Docker Compose">
+    `docker-compose up --build` — your API is live on `localhost:5000`.
+  </Step>
+</Steps>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Key concepts
 
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+| Concept | Description |
+|---------|-------------|
+| **Routes** | Flask Blueprints that handle HTTP — call services and return JSON |
+| **Services** | Business logic layer — validation, calculations, orchestration |
+| **Repositories** | Data access layer — all SQLAlchemy queries live here |
+| **Models** | SQLAlchemy dataclass definitions for your database tables |
+| **MCP Server** | Lets AI agents scaffold and extend your project programmatically |

@@ -1,0 +1,89 @@
+---
+title: "Migrations"
+description: "Managing database schema changes with Alembic and SQLAlchemy in BackAnt."
+---
+
+BackAnt includes [Alembic](https://alembic.sqlalchemy.org/) (`alembic~=1.12.0`) in `requirements.txt` for database migrations.
+
+## How tables are created
+
+In development, BackAnt takes a code-first approach: `Base.metadata.create_all(engine)` in `init_db()` creates any tables that don't yet exist on every startup.
+
+This means for **new routes**, you don't need a migration — just run `docker-compose up --build` and the table is created automatically.
+
+## When you need Alembic
+
+Alembic is needed when you make **changes to existing tables** — adding columns, renaming columns, changing types, adding indexes. `create_all()` does not modify tables that already exist.
+
+## Setting up Alembic
+
+Initialize Alembic from the project root:
+
+```bash
+cd my-api
+alembic init alembic
+```
+
+Edit `alembic.ini` to set your database URL:
+
+```ini
+sqlalchemy.url = postgresql://postgres:test@localhost/postgres
+```
+
+Edit `alembic/env.py` to point at BackAnt's `Base`:
+
+```python
+from startup.Alchemy import Base
+target_metadata = Base.metadata
+```
+
+Also ensure all models are imported before `Base.metadata` is referenced:
+
+```python
+import models.Users_model
+import models.Orders_model
+# ... all your models
+```
+
+## Generating a migration
+
+After changing a model (e.g. adding a `phone` column to `Users`), generate a migration:
+
+```bash
+alembic revision --autogenerate -m "add phone to users"
+```
+
+Alembic compares your SQLAlchemy models against the current database schema and generates an `upgrade()` / `downgrade()` script in `alembic/versions/`.
+
+## Applying migrations
+
+```bash
+alembic upgrade head
+```
+
+## Rolling back
+
+```bash
+alembic downgrade -1   # one step back
+alembic downgrade base  # all the way back
+```
+
+## CLEAR_DB in development
+
+For rapid iteration during development, `CLEAR_DB=True` in your `.env` drops all tables and recreates them from scratch on every restart. This is faster than running Alembic but destroys all data:
+
+```env
+CLEAR_DB=True
+```
+
+<Warning>
+  Never use `CLEAR_DB=True` in production. Always use Alembic migrations for production schema changes.
+</Warning>
+
+## Migration checklist
+
+1. Modify the SQLAlchemy model in `api/models/`
+2. Run `alembic revision --autogenerate -m "description"`
+3. Review the generated migration in `alembic/versions/`
+4. Run `alembic upgrade head`
+5. Rebuild your Docker image for deployment

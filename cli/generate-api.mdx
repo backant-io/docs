@@ -1,0 +1,111 @@
+---
+title: "generate api"
+description: "Scaffold a new BackAnt Flask API project."
+---
+
+`ant generate api` creates a complete, ready-to-run Flask project from a template or a JSON spec.
+
+## Syntax
+
+```bash
+ant generate api <project_name> [--json <spec>] [--verbose] [--dry-run]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `project_name` | Name of the directory to create (e.g. `my-api`, `shop`) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--json <spec>` | JSON string or path to a spec file. Generates routes from the spec. If omitted, only the base template is copied. |
+| `--verbose`, `-v` | Print step-by-step generation progress. No effect in `--report` mode. |
+| `--dry-run` | Validate the spec and show what would be generated — no files are created. |
+
+## Examples
+
+### Bare scaffold
+
+```bash
+ant generate api my-api
+```
+
+Creates `my-api/` with the full project template and a single default route at `GET /`.
+
+### From a spec file
+
+```bash
+ant generate api shop --json api-spec.json
+```
+
+### From an inline JSON string
+
+```bash
+ant generate api shop --json '{"routes": {"products": {"type": "GET"}}}'
+```
+
+### Validate without generating
+
+```bash
+ant generate api shop --json api-spec.json --dry-run
+```
+
+### With verbose progress
+
+```bash
+ant generate api shop --json api-spec.json --verbose
+```
+
+### Machine-readable output
+
+```bash
+ant --report generate api shop --json api-spec.json
+```
+
+## What gets generated
+
+Running `ant generate api my-api --json api-spec.json` creates:
+
+```
+my-api/
+├── api/
+│   ├── routes/<route>_route.py         (one per route in spec)
+│   ├── services/<route>_service.py
+│   ├── repositories/<route>_repository.py
+│   ├── models/<Route>_model.py
+│   ├── startup/Alchemy.py              (with model imports added)
+│   └── app.py                          (with blueprints registered)
+├── docker-compose.yml
+├── Dockerfile
+└── .env
+```
+
+## Success output
+
+```
+Successfully generated API project 'shop' from JSON!
+   Generated: 3 routes, 5 subroutes
+```
+
+## Error cases
+
+| Error | Cause |
+|-------|-------|
+| `Error: Directory 'shop' already exists.` | Project folder already exists |
+| `Error: Template directory '...' does not exist.` | CLI installation issue |
+| `JSON validation failed: ...` | Spec format error — see validation messages |
+
+## Running your project
+
+After generation:
+
+```bash
+cd my-api
+docker-compose up --build
+curl http://localhost:5000/
+```
+
+See [Deployment](/deployment/overview) for full details.

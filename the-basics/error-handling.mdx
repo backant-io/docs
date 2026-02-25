@@ -1,0 +1,128 @@
+---
+title: "Error Handling"
+description: "Raising and handling API errors with APIException in BackAnt."
+---
+
+BackAnt uses a custom `APIException` class for all expected errors. Raise it from any layer — the error handler registered in `app.py` catches it and returns a formatted JSON response.
+
+## APIException
+
+```python
+# api/helper/execution_tracking/APIException.py
+
+class APIException(Exception):
+    def __init__(self, message=None, status_code=None, payload=None):
+        self.status_code: int = 500
+        self.message: str = "Ocurrió un error"
+        super().__init__()
+        if message is not None:
+            self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        exception = dict(self.payload or ())
+        exception["message"] = self.message
+        return exception
+```
+
+## Raising errors
+
+Import `APIException` in your service and raise it for expected error conditions:
+
+```python
+from helper.execution_tracking.APIException import APIException
+
+class UsersService:
+    def get_user(self, user_id):
+        user = self.users_repository.get_by_id(user_id)
+        if user is None:
+            raise APIException(status_code=404, message="User not found")
+        return user
+
+    def create_user(self, data):
+        if not data.get("email"):
+            raise APIException(status_code=400, message="Email is required")
+        return self.users_repository.add_user(**data)
+```
+
+## How it reaches the client
+
+`app.py` registers `APIException` with Flask's error handler:
+
+```python
+@app.errorhandler(APIException)
+def invalid_api_usage(exception):
+    return jsonify(exception.to_dict()), exception.status_code
+```
+
+Any `APIException` raised anywhere in the request lifecycle (route, service, repository) is automatically caught and returned as:
+
+```json
+HTTP 404
+{"message": "User not found"}
+```
+
+## Passing extra data
+
+Use `payload` to include additional fields in the error response:
+
+```python
+raise APIException(
+    status_code=422,
+    message="Validation failed",
+    payload={"field": "email", "detail": "already exists"}
+)
+```
+
+Response:
+
+```json
+HTTP 422
+{
+  "message": "Validation failed",
+  "field": "email",
+  "detail": "already exists"
+}
+```
+
+## Common status codes
+
+| Code | Use case |
+|------|----------|
+| `400` | Bad request — missing or invalid input |
+| `401` | Unauthorized — missing or invalid token |
+| `403` | Forbidden — valid token but insufficient role |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — e.g. duplicate email |
+| `422` | Unprocessable — validation failed |
+| `500` | Internal server error (default) |
+
+## Handling database errors
+
+Wrap repository calls in the service when you need to translate database exceptions:
+
+```python
+from sqlalchemy.exc import IntegrityError
+
+def create_user(self, data):
+    try:
+        return self.users_repository.add_user(**data)
+    except IntegrityError:
+        raise APIException(status_code=409, message="Email already exists")
+```
+
+## Unhandled exceptions
+
+Any exception that is not an `APIException` will propagate as a 500 Internal Server Error. Use `myLogger.exception(e)` to log the full traceback before re-raising or wrapping:
+
+```python
+from helper.execution_tracking.Logger import myLogger
+
+try:
+    result = self.users_repository.complex_operation()
+except Exception as e:
+    myLogger.exception(e)
+    raise APIException(status_code=500, message="Unexpected error")
+```

@@ -1,0 +1,99 @@
+---
+title: "Logging"
+description: "Structured logging with the BackAnt Logger class."
+---
+
+BackAnt ships a custom `Logger` class in `api/helper/execution_tracking/Logger.py`. It wraps Python's standard `logging` module and automatically tags every log entry with the calling class and method name.
+
+## The Logger class
+
+```python
+import logging
+
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+
+class Logger:
+    def info(self, info: str): ...
+    def warning(self, warning: str): ...
+    def debug(self, debug: str): ...
+    def exception(self, e: Exception): ...
+```
+
+A singleton `myLogger` is pre-instantiated at the bottom of the file and imported wherever logging is needed.
+
+## Using the logger
+
+```python
+from helper.execution_tracking.Logger import myLogger
+
+class UsersService:
+    logger = myLogger
+
+    def create_user(self, data):
+        self.logger.info(f"Creating user with email {data.get('email')}")
+        try:
+            user = self.users_repository.add_user(**data)
+            self.logger.info(f"User created: {user.id}")
+            return user
+        except Exception as e:
+            self.logger.warning(f"Failed to create user: {e}")
+            raise
+```
+
+## Log levels
+
+| Method | Level | Use for |
+|--------|-------|---------|
+| `myLogger.info(msg)` | INFO | Normal operations, created/updated/deleted |
+| `myLogger.warning(msg)` | WARNING | Recoverable errors, unexpected input |
+| `myLogger.debug(msg)` | DEBUG | Detailed diagnostic output |
+| `myLogger.exception(e)` | ERROR | Full traceback — pass the exception object |
+
+## Auto-tagging
+
+The `Logger` inspects the call stack and prepends the calling class and method name to every message:
+
+```
+2025-01-01 12:00:00 - INFO - UsersService::create_user<Creating user with email alice@example.com>
+2025-01-01 12:00:00 - WARNING - UsersRepository::add_user<Failed to write item to DB because of ...>
+```
+
+This makes it easy to trace where a log line originated without adding class names manually.
+
+## Logger in repositories
+
+The `Repository` base class and `DBSession` both use `myLogger` internally. Database operations are logged automatically:
+
+```
+INFO - DefaultRepository::add<Default(...) added.>
+WARNING - DBSession::add<Failed to write item to DB because of ('...',)>
+```
+
+## Accessing logger in generated code
+
+All generated services and repositories inject `myLogger` via the constructor:
+
+```python
+myUsersRepository = UsersRepository(myDB, myLogger)
+```
+
+Access it via `self.logger` inside the class.
+
+## Log output format
+
+The default format is:
+
+```
+%(asctime)s - %(levelname)s - %(message)s
+```
+
+Example:
+
+```
+2025-01-01 12:00:00,123 - INFO - UsersService::get_users<Fetching all users>
+```
+
+To change the format or level, update the `basicConfig` call in `Logger.py`.

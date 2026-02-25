@@ -1,0 +1,85 @@
+---
+title: "Database Getting Started"
+description: "How SQLAlchemy and PostgreSQL are set up in a BackAnt project."
+---
+
+BackAnt uses SQLAlchemy with PostgreSQL via `psycopg2`. The database layer is configured in `api/startup/Alchemy.py` and accessed through the `DBSession` wrapper in `api/helper/DBSession.py`.
+
+## How it works
+
+On application startup, `create_app()` in `app.py` calls `init_db()`:
+
+```python
+from startup.Alchemy import init_db
+init_db()
+```
+
+`init_db()` imports all models (so SQLAlchemy knows about all tables), optionally drops them if `CLEAR_DB=True`, then creates any missing tables:
+
+```python
+def init_db():
+    import models.Default_model
+    # all generated models are imported here by `ant generate route`
+
+    if myEnvironment.CLEAR_DB == "True":
+        Base.metadata.drop_all(engine)
+    try:
+        Base.metadata.create_all(engine)
+    except Exception as e:
+        myLogger.warning(f"Could not connect to DB because of <{e}>")
+        quit(1)
+```
+
+## Engine and session
+
+The engine connects to PostgreSQL using credentials from `Environment.py`:
+
+```python
+engine = create_engine(
+    f"postgresql+psycopg2://{db_user}:{db_password}@{db_url}/{db}"
+)
+
+db_session = scoped_session(
+    sessionmaker(autocommit=False, autoflush=False, bind=engine)
+)
+
+Base = declarative_base()
+```
+
+`db_session` is a thread-local scoped session. It is removed at the end of each request via the `teardown_appcontext` hook in `app.py`.
+
+## DBSession wrapper
+
+All database operations go through the `DBSession` class in `api/helper/DBSession.py`. It wraps the scoped session with error handling and automatic rollback:
+
+```python
+from helper.DBSession import myDB
+
+# In a repository:
+stmt = select(Users)
+results = myDB.execute(stmt).scalars().all()
+```
+
+The `myDB` singleton is pre-instantiated and injected into every repository.
+
+## Adding a new model
+
+When `ant generate route <name>` runs, it:
+1. Creates `api/models/<Name>_model.py`
+2. Adds an import of the model to `init_db()` in `api/startup/Alchemy.py`
+
+The model is then included in `create_all()` on the next startup. No manual migration step is required for new tables in development.
+
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `POSTGRES_USER` | Database username |
+| `POSTGRES_PASSWORD` | Database password |
+| `POSTGRES_DB` | Database name |
+| `DB_URL` | Host — `postgres` inside Docker, `localhost` for local dev |
+| `CLEAR_DB` | Set to `True` to drop and recreate all tables on startup |
+
+## Connecting outside Docker
+
+Set `DB_URL=localhost` in `.env` and ensure PostgreSQL is running locally on port `5432`.

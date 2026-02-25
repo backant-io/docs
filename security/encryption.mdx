@@ -1,0 +1,84 @@
+---
+title: "Encryption & Hashing"
+description: "JWT handling, API key hashing, and Cognito integration in BackAnt."
+---
+
+## JWT
+
+The `jwt` package (`jwt~=1.3.1`) is included in `requirements.txt`. Use it to decode and validate JWT tokens in the `token_required` decorator:
+
+```python
+import jwt
+
+decoded = jwt.decode(
+    token,
+    key=myEnvironment.COGNITO_APP_CLIENT_SECRET,
+    algorithms=["HS256"]
+)
+```
+
+For RS256 tokens (e.g. Cognito), retrieve the public key from the Cognito JWKS endpoint:
+
+```python
+import jwt
+import requests
+
+def get_cognito_public_keys():
+    region = myEnvironment.COGNITO_REGION
+    pool_id = myEnvironment.COGNITO_USERPOOL_ID
+    url = f"https://cognito-idp.{region}.amazonaws.com/{pool_id}/.well-known/jwks.json"
+    return requests.get(url).json()
+```
+
+## AWS Cognito
+
+The `flask-Cognito` package is included in `requirements.txt`. Configure it using the Cognito environment variables from `Environment.py`:
+
+```python
+COGNITO_REGION = os.getenv("COGNITO_REGION")
+COGNITO_USERPOOL_ID = os.getenv("COGNITO_USERPOOL_ID")
+COGNITO_APP_CLIENT_ID = os.getenv("COGNITO_APP_CLIENT_ID")
+COGNITO_APP_CLIENT_SECRET = os.getenv("COGNITO_APP_CLIENT_SECRET")
+COGNITO_ACCESS_KEY_ID = os.getenv("COGNITO_ACCESS_KEY_ID")
+COGNITO_SECRET_ACCESS_KEY = os.getenv("COGNITO_SECRET_ACCESS_KEY")
+```
+
+## API key hashing
+
+The MCP server hashes API keys with SHA-256 before storing them in the database — only the hash is persisted, never the raw key:
+
+```python
+import hashlib
+
+def _hash_key(api_key: str) -> str:
+    return hashlib.sha256(api_key.encode()).hexdigest()
+```
+
+To validate an incoming key, hash it and compare against the stored hash:
+
+```python
+key_hash = _hash_key(incoming_key)
+row = await conn.fetchrow(
+    "SELECT user_id FROM api_keys WHERE key_hash = $1 AND is_active = TRUE",
+    key_hash
+)
+```
+
+Apply the same pattern in your own API key systems — never store or log raw keys.
+
+## Passwords
+
+For user passwords, use `werkzeug.security` (included via Flask):
+
+```python
+from werkzeug.security import generate_password_hash, check_password_hash
+
+hashed = generate_password_hash("my_password")
+is_valid = check_password_hash(hashed, "my_password")
+```
+
+Use `scrypt` or `pbkdf2:sha256` as the method (Werkzeug defaults to `scrypt` in recent versions).
+
+## HTTPS
+
+Always run behind HTTPS in production. When deploying on AWS ECS/EC2, terminate TLS at the load balancer (ALB) and forward traffic to the Flask container on port 5000 over HTTP internally.

@@ -1,0 +1,82 @@
+---
+title: "Authorization"
+description: "Role-based access control with the role_required decorator."
+---
+
+BackAnt ships a `role_required` decorator alongside `token_required` in `api/decorators/token_required.py` for role-based access control.
+
+## The `role_required` decorator
+
+```python
+def role_required(role):
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            auth_header = request.headers.get("Authorization", None)
+            if not auth_header:
+                raise APIException(status_code=401)
+
+            token = auth_header.split()[1]
+            if not token:
+                raise APIException(status_code=401)
+
+            # Add role validation logic here
+
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
+```
+
+## Protecting a route by role
+
+```python
+from decorators.token_required import token_required, role_required
+
+@admin_bp.delete("/users/<int:user_id>")
+@token_required
+@role_required("admin")
+def delete_user(user_id):
+    response = myAdminService.delete_user(user_id)
+    return jsonify(response)
+```
+
+Apply `@token_required` first to authenticate, then `@role_required` to check the role.
+
+## Implementing role validation
+
+Add your role-checking logic in the `wrapped` function. A typical pattern with JWT claims:
+
+```python
+import jwt
+from startup.Environment import myEnvironment
+
+def role_required(role):
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            auth_header = request.headers.get("Authorization", None)
+            if not auth_header:
+                raise APIException(status_code=401)
+
+            token = auth_header.split()[1]
+            try:
+                decoded = jwt.decode(token, options={"verify_signature": False})
+                user_role = decoded.get("custom:role")
+                if user_role != role:
+                    raise APIException(status_code=403, message="Insufficient permissions")
+            except APIException:
+                raise
+            except Exception:
+                raise APIException(status_code=401)
+
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
+```
+
+## Response for unauthorized roles
+
+```json
+HTTP 403
+{"message": "Insufficient permissions"}
+```

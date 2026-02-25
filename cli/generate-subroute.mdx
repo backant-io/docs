@@ -1,0 +1,105 @@
+---
+title: "generate subroute"
+description: "Add a subroute endpoint to an existing route in a BackAnt project."
+---
+
+`ant generate subroute` appends a new endpoint to an existing route's Blueprint, and adds corresponding methods to the service and repository.
+
+## Syntax
+
+```bash
+ant generate subroute <route> <subroute> [--type METHOD] [--mock <json>]
+```
+
+<Note>
+  Run this command from the **project root**. The parent route must already exist.
+</Note>
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `route` | Name of the existing parent route (e.g. `users`) |
+| `subroute` | Name of the new endpoint (e.g. `profile`, `create`) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--type METHOD` | HTTP method: `GET` or `POST` (case-insensitive). Default: `GET`. |
+| `--mock <json>` | JSON string or file path. Injected as the mock return value in the service. |
+
+## Examples
+
+### GET subroute
+
+```bash
+ant generate subroute users profile
+```
+
+Creates `GET /users/profile`.
+
+### POST subroute
+
+```bash
+ant generate subroute users create --type POST
+```
+
+Creates `POST /users/create`.
+
+### POST with mock data
+
+```bash
+ant generate subroute users create --type POST --mock '{"id": 3, "name": "Charlie"}'
+```
+
+### GET with mock file
+
+```bash
+ant generate subroute orders items --mock items.json
+```
+
+### Machine-readable output
+
+```bash
+ant --report generate subroute users profile
+```
+
+## Files modified
+
+| File | Change |
+|------|--------|
+| `api/routes/users_route.py` | Appends `@users_bp.get("/profile")` or `.post("/create")` with handler function |
+| `api/services/users_service.py` | Adds `get_profile()` (GET) or `create_create(data)` (POST) |
+| `api/repositories/users_repository.py` | Adds `get_profile()` (GET) or `add_create(data)` (POST) |
+
+## Generated method naming
+
+| HTTP method | Service method | Repository method |
+|-------------|---------------|-------------------|
+| GET | `get_<subroute>()` | `get_<subroute>()` |
+| POST | `create_<subroute>(data)` | `add_<subroute>(data)` |
+
+## Pre-conditions
+
+The parent route files must exist. If not:
+
+```
+Error: Route 'users' does not exist. Please generate the main route first using:
+  ant generate route users
+```
+
+## Duplicate detection
+
+If the subroute method already exists in the route file, a warning is printed and the file is left unchanged:
+
+```
+Warning: Subroute 'profile' already exists in api/routes/users_route.py
+```
+
+## Success output
+
+```
+Successfully generated GET subroute 'profile' for route 'users'!
+Successfully generated POST subroute 'create' for route 'users' with mock data!
+```

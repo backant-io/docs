@@ -1,0 +1,99 @@
+---
+title: "Configuration"
+description: "Environment variables and database configuration for your BackAnt project."
+---
+
+Every BackAnt project ships with a `.env` file at the project root. This file is loaded at startup by `python-dotenv` and mapped to the `Environment` class in `api/startup/Environment.py`.
+
+## Default `.env`
+
+```env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=test
+POSTGRES_DB=postgres
+DB_URL=postgres
+CLEAR_DB=False
+FLASK_APP=app.py
+FLASK_ENV=development
+TESTING=False
+```
+
+<Warning>
+  Never commit real credentials to version control. Add `.env` to `.gitignore` and use secrets management in production.
+</Warning>
+
+## Database variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `POSTGRES_USER` | PostgreSQL username | `postgres` |
+| `POSTGRES_PASSWORD` | PostgreSQL password | `test` |
+| `POSTGRES_DB` | Database name | `postgres` |
+| `DB_URL` | Hostname of the PostgreSQL server | `postgres` (Docker service name) |
+| `CLEAR_DB` | Drop and recreate all tables on startup | `False` |
+
+`DB_URL` should be set to `postgres` when running inside Docker Compose (the service name resolves as a hostname), and `localhost` when running Flask directly outside of Docker.
+
+<Warning>
+  Set `CLEAR_DB=True` only during development. It drops all tables on every restart.
+</Warning>
+
+## Flask variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FLASK_APP` | Entry point for Flask | `app.py` |
+| `FLASK_ENV` | `development` enables debug mode and reloader | `development` |
+| `TESTING` | Enables test mode in Flask | `False` |
+
+## AWS / S3 variables
+
+These are used by the built-in `AWSClient` in `api/apis/aws/AWSClient.py`.
+
+| Variable | Description |
+|----------|-------------|
+| `S3_ACCESS_KEY` | AWS access key ID |
+| `S3_SECRET_KEY` | AWS secret access key |
+
+## AWS Cognito variables
+
+Used when integrating Cognito for authentication.
+
+| Variable | Description |
+|----------|-------------|
+| `COGNITO_REGION` | AWS region (e.g. `eu-central-1`) |
+| `COGNITO_USERPOOL_ID` | Cognito User Pool ID |
+| `COGNITO_APP_CLIENT_ID` | Cognito App Client ID |
+| `COGNITO_APP_CLIENT_SECRET` | Cognito App Client Secret |
+| `COGNITO_ACCESS_KEY_ID` | IAM access key with Cognito permissions |
+| `COGNITO_SECRET_ACCESS_KEY` | Corresponding IAM secret key |
+
+## Environment class
+
+All variables are accessed at runtime via the `myEnvironment` singleton in `api/startup/Environment.py`. Never read `os.environ` directly — import from the singleton instead:
+
+```python
+from startup.Environment import myEnvironment
+
+db_url = myEnvironment.DB_URL
+region = myEnvironment.COGNITO_REGION
+```
+
+## Local development without Docker
+
+Set `DB_URL=localhost` and ensure PostgreSQL is running locally:
+
+```env
+DB_URL=localhost
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=test
+POSTGRES_DB=postgres
+CLEAR_DB=False
+```
+
+Then run Flask directly:
+
+```bash
+cd my-api
+flask run
+```

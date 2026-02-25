@@ -1,0 +1,79 @@
+---
+title: "Middleware"
+description: "CORS, session teardown, and graceful shutdown in BackAnt."
+---
+
+BackAnt's `app.py` wires up several pieces of middleware and lifecycle hooks at application creation time inside `create_app()`.
+
+## CORS
+
+Cross-Origin Resource Sharing is enabled globally via `flask-cors`:
+
+```python
+from flask_cors import CORS
+
+app = Flask(__name__)
+app.config["CORS_HEADERS"] = "Content-Type"
+CORS(app)
+```
+
+This allows all origins by default. To restrict to specific origins, pass an `origins` argument:
+
+```python
+CORS(app, origins=["https://yourfrontend.com"])
+```
+
+## Database session teardown
+
+SQLAlchemy uses a scoped session tied to the request context. After each request completes (with or without an exception), the session is removed to prevent connection leaks:
+
+```python
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()
+```
+
+`db_session` is the `scoped_session` created in `startup/Alchemy.py`. The `remove()` call closes the connection and returns it to the pool.
+
+## Error handler
+
+`APIException` is registered as a Flask error handler so any raised `APIException` anywhere in the request lifecycle is automatically caught and returned as a JSON response:
+
+```python
+from helper.execution_tracking.APIException import APIException
+
+@app.errorhandler(APIException)
+def invalid_api_usage(exception):
+    return jsonify(exception.to_dict()), exception.status_code
+```
+
+See [Error Handling](/the-basics/error-handling) for how to raise and use `APIException`.
+
+## Graceful shutdown (SIGTERM)
+
+The app registers a SIGTERM signal handler so it can finish in-flight requests before exiting — important when running inside Docker or Kubernetes:
+
+```python
+import signal
+
+def shutdown(signum, frame):
+    print("Caught SIGTERM, shutting down")
+    exit(0)
+
+signal.signal(signal.SIGTERM, shutdown)
+```
+
+## Adding custom middleware
+
+To add your own middleware (e.g. request logging, rate limiting), use Flask's `before_request` and `after_request` hooks inside `create_app()`:
+
+```python
+@app.before_request
+def log_request():
+    myLogger.info(f"{request.method} {request.path}")
+
+@app.after_request
+def add_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+```

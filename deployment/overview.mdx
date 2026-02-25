@@ -1,0 +1,142 @@
+---
+title: "Deployment"
+description: "Run your BackAnt project locally with Docker Compose and deploy to production via Amazon ECR."
+---
+
+Every BackAnt project ships with a `Dockerfile`, a development `docker-compose.yml`, a production `docker-compose-prod.yml`, and a GitHub Actions workflow for pushing images to Amazon ECR.
+
+## Local development
+
+Start the full stack (PostgreSQL + Flask) from the project root:
+
+```bash
+docker-compose up --build
+```
+
+This starts:
+- **PostgreSQL 16** on `localhost:5432`
+- **Flask (gunicorn)** on `localhost:5000` with 4 workers
+
+On first start, `init_db()` creates all tables automatically. Test the default route:
+
+```bash
+curl http://localhost:5000/
+# "Your backant backend is working"
+```
+
+To stop without removing volumes:
+
+```bash
+docker-compose down
+```
+
+## Dockerfile
+
+The generated `Dockerfile` uses `python:3.11-slim-buster` and runs Flask via `gunicorn` with 4 gthread workers:
+
+```dockerfile
+FROM python:3.11-slim-buster
+
+ENV POSTGRES_USER=postgres \
+    POSTGRES_PASSWORD=test \
+    POSTGRES_DB=postgres \
+    DB_URL=postgres \
+    CLEAR_DB=True \
+    FLASK_APP=app.py \
+    FLASK_ENV=development
+
+WORKDIR /app
+COPY requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt
+COPY api .
+
+CMD [ "gunicorn", "--log-level", "debug", "--timeout", "0", \
+      "-k", "gthread", "--workers", "4", "--bind", "0.0.0.0:5000", \
+      "app:create_app()" ]
+```
+
+<Note>
+  The `ENV` defaults in the Dockerfile are overridden at runtime by the environment variables in `docker-compose.yml`. Always configure sensitive values via `.env`, not the Dockerfile.
+</Note>
+
+## Environment variables at runtime
+
+`docker-compose.yml` injects all variables from your `.env` file into the container:
+
+```yaml
+flask_backend:
+  build: .
+  environment:
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    POSTGRES_DB: ${POSTGRES_DB}
+    DB_URL: ${DB_URL}
+    CLEAR_DB: ${CLEAR_DB}
+    FLASK_APP: ${FLASK_APP}
+    FLASK_ENV: ${FLASK_ENV}
+```
+
+Ensure your `.env` at the project root has all required values set before running `docker-compose up`.
+
+## Production deployment
+
+### 1. Set CLEAR_DB to False
+
+```env
+CLEAR_DB=False
+```
+
+Never drop tables in production.
+
+### 2. Push to Amazon ECR via GitHub Actions
+
+The generated workflow at `.github/workflows/build_and_push_to_ecr.yml` triggers on every push to `main` and:
+
+1. Configures AWS credentials via OIDC (no long-lived keys)
+2. Logs in to ECR
+3. Builds the Docker image
+4. Tags and pushes it to your ECR repository
+
+Configure these values in the workflow file:
+
+```yaml
+env:
+  AWS_REGION: eu-central-1
+  ECR_REPOSITORY: your-repo-name
+  TAG: latest
+```
+
+The workflow uses `aws-actions/configure-aws-credentials@v4` with an IAM role assumed via GitHub's OIDC provider. Set the role ARN in your workflow:
+
+```yaml
+role-to-assume: arn:aws:iam::<account-id>:role/GitHubAction-AssumeRoleWithAction
+```
+
+### 3. Deploy with the production compose file
+
+Update `docker-compose-prod.yml` with your ECR image URL:
+
+```yaml
+services:
+  flask_backend:
+    image: <account>.dkr.ecr.<region>.amazonaws.com/<repo>:latest
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      DB_URL: ${DB_URL}
+      CLEAR_DB: False
+    ports:
+      - "5000:5000"
+    restart: always
+```
+
+Then deploy:
+
+```bash
+docker-compose -f docker-compose-prod.yml up -d
+```
+
+<Note>
+  The production compose file does not include the `postgres` service — use a managed database (e.g. AWS RDS) in production and point `DB_URL` at its hostname.
+</Note>

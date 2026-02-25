@@ -1,0 +1,96 @@
+---
+title: "generate route"
+description: "Add a route, service, repository, and model to an existing BackAnt project."
+---
+
+`ant generate route` generates all four layers for a new resource inside an existing project — route, service, repository, and model — and wires them into `app.py` and `Alchemy.py` automatically.
+
+## Syntax
+
+```bash
+ant generate route <name> [--mock <json>]
+```
+
+<Note>
+  Run this command from the **project root** — the directory that contains `api/`.
+</Note>
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `name` | Route name (e.g. `users`, `products`). Must be a valid Python identifier. |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--mock <json>` | JSON string or path to a `.json` file. The generated service returns this data instead of a placeholder string. |
+
+## Examples
+
+### Basic route
+
+```bash
+ant generate route users
+```
+
+### With inline mock data
+
+```bash
+ant generate route users --mock '[{"id": 1, "name": "Alice"}]'
+```
+
+### With mock data from file
+
+```bash
+ant generate route users --mock mock_data.json
+```
+
+### Machine-readable output
+
+```bash
+ant --report generate route users
+```
+
+## Files created
+
+| File | Description |
+|------|-------------|
+| `api/routes/users_route.py` | Flask Blueprint at `/users` with `GET ""` endpoint |
+| `api/services/users_service.py` | Service class with `get_users()` method |
+| `api/repositories/users_repository.py` | Repository class with CRUD stubs |
+| `api/models/Users_model.py` | SQLAlchemy model (capitalized name) |
+
+## Files modified
+
+| File | Change |
+|------|--------|
+| `api/startup/Alchemy.py` | Adds `import models.Users_model` inside `init_db()` |
+| `api/app.py` | Adds `from routes.users_route import users_bp` and `app.register_blueprint(users_bp)` |
+
+## Success output
+
+```
+Successfully generated route, service, repository, and model for 'users'!
+Successfully generated route, service, repository, and model for 'users' with mock data!
+```
+
+## Naming rules
+
+| Input | Generated |
+|-------|-----------|
+| Route file | `api/routes/users_route.py` |
+| Blueprint variable | `users_bp` |
+| URL prefix | `/users` |
+| Service class | `UsersService` |
+| Repository class | `UsersRepository` |
+| Model class | `Users` |
+| Table name | `users` |
+
+Names must be valid Python identifiers: letters, digits, and underscores only, cannot start with a digit.
+
+```
+✅ users, user_posts, api_keys
+❌ my-route, 1users, user posts
+```

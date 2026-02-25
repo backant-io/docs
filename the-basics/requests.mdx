@@ -1,0 +1,99 @@
+---
+title: "Requests"
+description: "Reading HTTP request data in BackAnt routes."
+---
+
+Flask's `request` object is available in any route function. Import it from `flask`:
+
+```python
+from flask import request
+```
+
+## JSON body
+
+For `POST`, `PUT`, and `PATCH` requests with a JSON body:
+
+```python
+@users_bp.post("/create")
+def create_user():
+    data = request.get_json()
+    response = myUsersService.create_user(data)
+    return jsonify(response)
+```
+
+`request.get_json()` parses the body and returns a dict. If the body is missing or not valid JSON it returns `None`. Validate the data in the service layer, not the route.
+
+## Query parameters
+
+```python
+@users_bp.get("")
+def get_users():
+    page = request.args.get("page", 1, type=int)
+    limit = request.args.get("limit", 20, type=int)
+    response = myUsersService.get_users(page=page, limit=limit)
+    return jsonify(response)
+```
+
+`request.args` is an `ImmutableMultiDict`. Use `.get(key, default, type=)` to safely read values with type coercion.
+
+## Headers
+
+```python
+auth_header = request.headers.get("Authorization", None)
+content_type = request.headers.get("Content-Type")
+```
+
+Headers are read in the `token_required` decorator — routes generally don't need to read headers directly.
+
+## URL path parameters
+
+Flask supports dynamic URL segments using `<variable>`:
+
+```python
+@users_bp.get("/<int:user_id>")
+def get_user(user_id):
+    response = myUsersService.get_user(user_id)
+    return jsonify(response)
+```
+
+Supported converters: `string` (default), `int`, `float`, `path`, `uuid`.
+
+## Form data
+
+```python
+name = request.form.get("name")
+```
+
+## File uploads
+
+```python
+file = request.files.get("upload")
+if file:
+    file.save(f"/tmp/{file.filename}")
+```
+
+## Request validation pattern
+
+Validate request data in the service using marshmallow schemas:
+
+```python
+# Route — just pass data through
+@users_bp.post("/create")
+def create_user():
+    data = request.get_json()
+    response = myUsersService.create_user(data)
+    return jsonify(response)
+
+# Service — validate before processing
+def create_user(self, data):
+    from schemas.PostUsers_schema import PostUsersSchema
+    from marshmallow import ValidationError
+    from helper.functions.validation_error import validation_error
+    try:
+        validated = PostUsersSchema().load(data or {})
+    except ValidationError as e:
+        raise validation_error(e)
+    return self.users_repository.add_user(**validated)
+```
+
+See [Schemas](/the-basics/schemas) for full details.

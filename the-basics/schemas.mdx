@@ -1,0 +1,100 @@
+---
+title: "Schemas"
+description: "Request validation with marshmallow schemas in BackAnt."
+---
+
+BackAnt uses [marshmallow](https://marshmallow.readthedocs.io/) for request body validation. Schemas live in `api/schemas/` and are used in the service layer to validate incoming data before processing.
+
+## Schema structure
+
+Each schema is a marshmallow `Schema` subclass. The naming convention is `Post<Name>Schema` for POST request schemas:
+
+```python
+# api/schemas/PostUsers_schema.py
+from marshmallow import fields, Schema
+
+class PostUsersSchema(Schema):
+    name = fields.String(required=True)
+    email = fields.Email(required=True)
+    age = fields.Integer(load_default=None)
+```
+
+## Using a schema in a service
+
+```python
+from marshmallow import ValidationError
+from schemas.PostUsers_schema import PostUsersSchema
+from helper.functions.validation_error import validation_error
+
+class UsersService:
+    def create_user(self, data):
+        try:
+            validated = PostUsersSchema().load(data or {})
+        except ValidationError as e:
+            raise validation_error(e)
+
+        return self.users_repository.add_user(**validated)
+```
+
+`validation_error()` is a helper in `api/helper/functions/validation_error.py` that converts a marshmallow `ValidationError` into an `APIException(400)` automatically.
+
+## Common field types
+
+| Field | Description |
+|-------|-------------|
+| `fields.String()` | String value |
+| `fields.Integer()` | Integer value |
+| `fields.Float()` | Float value |
+| `fields.Boolean()` | Boolean value |
+| `fields.Email()` | Validates email format |
+| `fields.URL()` | Validates URL format |
+| `fields.List(fields.String())` | List of strings |
+| `fields.Dict()` | Arbitrary dict |
+| `fields.DateTime()` | ISO 8601 datetime string |
+
+## Field options
+
+| Option | Description |
+|--------|-------------|
+| `required=True` | Field must be present in input |
+| `load_default=value` | Default value when field is missing |
+| `allow_none=True` | Allow `null` values |
+| `validate=` | Attach a validator function |
+
+## Validation example
+
+```python
+from marshmallow import fields, Schema, validate
+
+class PostProductSchema(Schema):
+    name = fields.String(required=True, validate=validate.Length(min=1, max=100))
+    price = fields.Float(required=True, validate=validate.Range(min=0))
+    stock = fields.Integer(load_default=0)
+```
+
+## Nested schemas
+
+```python
+class AddressSchema(Schema):
+    street = fields.String(required=True)
+    city = fields.String(required=True)
+
+class PostUserSchema(Schema):
+    name = fields.String(required=True)
+    address = fields.Nested(AddressSchema, required=True)
+```
+
+## Error format
+
+When validation fails, `validation_error()` raises `APIException(400)`. The response body will be:
+
+```json
+{"message": "Ocurrió un error"}
+```
+
+For more detailed validation error messages, inspect `error.messages` in the `ValidationError` and pass them to `APIException`:
+
+```python
+except ValidationError as e:
+    raise APIException(status_code=400, message=str(e.messages))
+```

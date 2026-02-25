@@ -1,0 +1,48 @@
+---
+title: "Installation"
+description: "Install the BackAnt CLI on your machine."
+---
+
+## Requirements
+
+- Python 3.11+
+- `pip` for installation
+- Docker & Docker Compose (to run generated projects)
+
+## Install via pip
+
+```bash
+pip install backant-cli
+```
+
+<Tip>Use a virtual environment to keep your global Python environment clean.</Tip>
+
+## Verify the installation
+
+```bash
+ant --help
+```
+
+Expected output:
+
+```
+Usage: ant [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --report  Output machine-readable JSON instead of human-readable text.
+  --help    Show this message and exit.
+
+Commands:
+  generate  Generate API projects, routes, and subroutes.
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/getting-started/configuration">
+    Configure environment variables and your database connection.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Explore every available command and flag.
+  </Card>
+</CardGroup>
