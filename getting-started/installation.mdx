@@ -1,75 +1,43 @@
 ---
 title: "Installation"
-description: "Install BackAnt — MCP server for your coding agent, or CLI for your terminal."
+description: "Install BackAnt and configure it for your coding agent or terminal."
 ---
 
-## MCP Server (for AI coding agents)
+## Quick Install
 
-The fastest way to get started. Run the wizard from your terminal and it will authenticate you, detect your installed coding agents, and configure the BackAnt MCP server automatically:
+Run a single command to get started:
 
 ```bash
 npx backant
 ```
 
-The wizard opens a browser for OAuth login, then writes the MCP configuration to each detected agent. No manual config needed.
+The wizard will log you in via OAuth, detect your installed coding agents, and configure everything automatically.
 
-<Tip>
-  Supports 30+ agents including Claude Code, Cursor, Windsurf, VS Code, Copilot, Cline, and more. See [Agentic Development](/getting-started/agentic-development) for the full list.
-</Tip>
-
----
-
-## CLI (for your terminal)
-
-The `ant` CLI scaffolds and extends Flask projects from the command line.
-
-### Requirements
-
-- Python 3.11+
-- Docker & Docker Compose (to run generated projects)
-
-### Install via pip
-
-```bash
-pip install backant-cli
-```
-
-<Tip>Use a virtual environment to keep your global Python environment clean.</Tip>
-
-### Verify the installation
-
-```bash
-ant --help
-```
-
-Expected output:
-
-```
-Usage: ant [OPTIONS] COMMAND [ARGS]...
-
-Options:
-  --report  Output machine-readable JSON instead of human-readable text.
-  --help    Show this message and exit.
-
-Commands:
-  generate  Generate API projects, routes, and subroutes.
-```
+<Info>
+  That's it for most users. The wizard handles everything — just follow the prompts and you're done.
+</Info>
 
 ---
 
-## Next steps
+## Choose Your Setup
 
 <CardGroup cols={2}>
-  <Card title="Agentic Development" icon="robot" href="/getting-started/agentic-development">
-    Connect your coding agent to BackAnt via MCP.
+  <Card title="MCP Server" icon="server" href="/getting-started/mcp-server">
+    Connect your AI coding agent to BackAnt. Supports 30+ agents including Claude Code, Cursor, Windsurf, and more.
+
+    - Automatic setup via wizard
+    - Remote server — zero local dependencies
+    - Manual config for any agent
   </Card>
-  <Card title="Configuration" icon="gear" href="/getting-started/configuration">
-    Configure environment variables and your database connection.
-  </Card>
-  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
-    Explore every available command and flag.
-  </Card>
-  <Card title="Directory Structure" icon="folder-open" href="/getting-started/directory-structure">
-    Understand the generated project layout.
+  <Card title="CLI" icon="square-terminal" href="/cli/installation">
+    Install the `ant` CLI to scaffold and extend Flask APIs from your terminal.
+
+    - `pip install backant-cli`
+    - Requires Python 3.11+
+    - Works standalone or alongside the MCP server
   </Card>
 </CardGroup>
+
+<Info>
+  **Not sure which to pick?** If you use an AI coding agent like Cursor or Claude Code, start with the **MCP Server** — your agent can scaffold entire APIs for you. If you prefer the terminal, install the **CLI**.
+</Info>

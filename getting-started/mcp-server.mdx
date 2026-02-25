@@ -1,0 +1,705 @@
+---
+title: "MCP Server"
+description: "Install and configure the BackAnt MCP server for your coding agent."
+---
+
+## Automatic Setup (Recommended)
+
+Run the wizard from your terminal:
+
+```bash
+npx backant
+```
+
+The wizard will log you in via OAuth, detect your installed coding agents, and write the MCP configuration automatically. No manual config needed.
+
+<Info>
+  Supports 30+ agents including Claude Code, Cursor, Windsurf, VS Code, Copilot, Cline, and more.
+</Info>
+
+---
+
+## Manual Configuration
+
+<Info>
+  **Remote Server** is recommended — no dependencies, no local process. If remote keeps failing (especially in Claude Code), switch to Local Server.
+</Info>
+
+<Note>
+  **Local Server requires** Docker. Run `docker compose up -d` in the `backant-mcp` directory first.
+</Note>
+
+The remote MCP server URL is `https://mcp.backant.io/mcp`. The local server runs at `http://localhost:8000/mcp`.
+
+Your API key is obtained automatically by the wizard via OAuth. To get one manually, log in at [backant.io/dashboard](https://backant.io/dashboard).
+
+---
+
+## Client-Specific Configuration
+
+<Accordion title="Claude Code">
+  See [Claude Code MCP docs](https://docs.anthropic.com/en/docs/claude-code/mcp) for more info.
+
+  **Remote Server (Recommended):**
+
+  ```bash
+  # Current project only
+  claude mcp add --transport http --header "Authorization: Bearer YOUR_API_KEY" backant "https://mcp.backant.io/mcp"
+
+  # All projects (global)
+  claude mcp add --transport http --header "Authorization: Bearer YOUR_API_KEY" --scope user backant "https://mcp.backant.io/mcp"
+  ```
+
+  **Local Server:**
+
+  ```bash
+  # Current project only
+  claude mcp add --transport http --header "Authorization: Bearer YOUR_API_KEY" backant "http://localhost:8000/mcp"
+
+  # All projects (global)
+  claude mcp add --transport http --header "Authorization: Bearer YOUR_API_KEY" --scope user backant "http://localhost:8000/mcp"
+  ```
+
+  | Scope | Description |
+  |-------|-------------|
+  | `--scope local` | Current project only — stored in `.mcp.json` |
+  | `--scope user` | All projects — stored in `~/.claude/settings.json` |
+
+  <Note>
+    Use `--scope user` to have BackAnt available across all your projects without configuring each one.
+  </Note>
+</Accordion>
+
+<Accordion title="Cursor">
+  Go to: **Settings → Cursor Settings → MCP → Add new global MCP server**
+
+  Or manually edit `~/.cursor/mcp.json`:
+  - **macOS**: `~/.cursor/mcp.json`
+  - **Windows**: `%APPDATA%\Cursor\mcp.json`
+  - **Linux**: `~/.config/cursor/mcp.json`
+
+  See [Cursor MCP docs](https://docs.cursor.com/context/model-context-protocol) for more info.
+
+  **Remote Server (Recommended):**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+
+  **Local Server:**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "http://localhost:8000/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="VS Code">
+  Open your VS Code MCP configuration:
+  - Run **MCP: Open User Configuration** from the Command Palette
+  - Or manually edit:
+    - **macOS/Linux**: `~/.config/Code/User/mcp.json`
+    - **Windows**: `%APPDATA%\Code\User\mcp.json`
+
+  See [VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers) for more info.
+
+  **Remote Server (Recommended):**
+
+  ```json
+  "mcp": {
+    "servers": {
+      "backant": {
+        "type": "http",
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+
+  **Local Server:**
+
+  ```json
+  "mcp": {
+    "servers": {
+      "backant": {
+        "type": "http",
+        "url": "http://localhost:8000/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Windsurf">
+  Edit your Windsurf MCP configuration:
+  - **macOS**: `~/.windsurf/mcp.json`
+  - **Windows**: `%APPDATA%\Windsurf\mcp.json`
+  - **Linux**: `~/.config/windsurf/mcp.json`
+
+  See [Windsurf MCP docs](https://docs.windsurf.com/windsurf/cascade/mcp) for more info.
+
+  **Remote Server (Recommended):**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "serverUrl": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+
+  **Local Server:**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "serverUrl": "http://localhost:8000/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Cline">
+  1. Open **Cline**
+  2. Click the hamburger menu → **MCP Servers**
+  3. Choose **Remote Servers** tab
+  4. Click **Edit Configuration**
+  5. Add `backant` to `mcpServers`:
+
+  **Remote Server (Recommended):**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "https://mcp.backant.io/mcp",
+        "type": "streamableHttp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+
+  **Local Server:**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "http://localhost:8000/mcp",
+        "type": "streamableHttp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Roo Code">
+  See [Roo Code MCP docs](https://docs.roocode.com/features/mcp/using-mcp-in-roo) for more info.
+
+  **Remote Server (Recommended):**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "type": "streamable-http",
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+
+  **Local Server:**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "type": "streamable-http",
+        "url": "http://localhost:8000/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Continue.dev">
+  Edit your `~/.continue/config.json`:
+
+  **Remote Server (Recommended):**
+
+  ```json
+  {
+    "experimental": {
+      "modelContextProtocolServer": {
+        "transport": {
+          "type": "http",
+          "url": "https://mcp.backant.io/mcp",
+          "headers": {
+            "Authorization": "Bearer YOUR_API_KEY"
+          }
+        }
+      }
+    }
+  }
+  ```
+
+  **Local Server:**
+
+  ```json
+  {
+    "experimental": {
+      "modelContextProtocolServer": {
+        "transport": {
+          "type": "http",
+          "url": "http://localhost:8000/mcp",
+          "headers": {
+            "Authorization": "Bearer YOUR_API_KEY"
+          }
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Claude Desktop">
+  Edit your Claude Desktop configuration:
+  - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+  - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+  **Remote Server (Recommended):**
+
+  Navigate to **Settings → Connectors → Add Custom Connector**. Enter the name `backant` and the URL `https://mcp.backant.io/mcp`.
+
+  **Local Server:**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "http://localhost:8000/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Copilot (VS Code)">
+  Add to your VS Code MCP configuration — Run **MCP: Open User Configuration** from the Command Palette.
+
+  **Remote Server (Recommended):**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "type": "http",
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Kilo Code">
+  Create `.kilocode/mcp.json` in your project:
+
+  **Remote Server (Recommended):**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "type": "streamable-http",
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        },
+        "disabled": false
+      }
+    }
+  }
+  ```
+
+  **Local Server:**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "type": "streamable-http",
+        "url": "http://localhost:8000/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        },
+        "disabled": false
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="JetBrains AI Assistant">
+  1. Go to **Settings → Tools → AI Assistant → Model Context Protocol (MCP)**
+  2. Click **+ Add**
+  3. Select **As JSON**
+  4. Add configuration:
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+
+  5. Click **Apply**
+</Accordion>
+
+<Accordion title="Zed">
+  Add to your Zed `settings.json`. See [Zed Context Server docs](https://zed.dev/docs/assistant/context-servers) for more info.
+
+  ```json
+  {
+    "context_servers": {
+      "backant": {
+        "source": "custom",
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Warp">
+  Navigate to **Settings → AI → Manage MCP servers → + Add**:
+
+  ```json
+  {
+    "backant": {
+      "url": "https://mcp.backant.io/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "start_on_launch": true
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Amazon Q Developer CLI">
+  See [Amazon Q Developer CLI docs](https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/command-line-mcp-configuration.html) for more details.
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Gemini CLI">
+  Open `~/.gemini/settings.json` and add:
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "httpUrl": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY",
+          "Accept": "application/json, text/event-stream"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Opencode">
+  ```json
+  {
+    "mcp": {
+      "backant": {
+        "type": "remote",
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        },
+        "enabled": true
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Augment Code">
+  Via UI: Hamburger menu → Settings → Tools → **+ Add MCP**
+
+  Or manually in settings:
+
+  ```json
+  "augment.advanced": {
+    "mcpServers": [
+      {
+        "name": "backant",
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    ]
+  }
+  ```
+</Accordion>
+
+<Accordion title="Qodo Gen">
+  1. Open the Qodo Gen chat panel
+  2. Click **Connect more tools → + Add new MCP**
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Trae">
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Amp">
+  ```bash
+  amp mcp add backant --header "Authorization=Bearer YOUR_API_KEY" https://mcp.backant.io/mcp
+  ```
+</Accordion>
+
+<Accordion title="Factory">
+  ```bash
+  droid mcp add backant https://mcp.backant.io/mcp --type http --header "Authorization: Bearer YOUR_API_KEY"
+  ```
+</Accordion>
+
+<Accordion title="Crush">
+  ```json
+  {
+    "mcp": {
+      "backant": {
+        "type": "http",
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Visual Studio 2022">
+  ```json
+  {
+    "servers": {
+      "backant": {
+        "type": "http",
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="LM Studio">
+  Go to **Program → Install → Edit mcp.json**:
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="BoltAI">
+  Open **Settings → Plugins**:
+
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        }
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Perplexity Desktop">
+  1. Navigate to **Settings → Connectors → Add Connector → Advanced**
+  2. Server Name: `backant`
+  3. Add:
+
+  ```json
+  {
+    "url": "https://mcp.backant.io/mcp",
+    "headers": {
+      "Authorization": "Bearer YOUR_API_KEY"
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="OpenAI Codex">
+  ```toml
+  [mcp_servers.backant]
+  url = "https://mcp.backant.io/mcp"
+  http_headers = { "Authorization" = "Bearer YOUR_API_KEY" }
+  ```
+</Accordion>
+
+<Accordion title="Kiro">
+  ```json
+  {
+    "mcpServers": {
+      "backant": {
+        "url": "https://mcp.backant.io/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY"
+        },
+        "disabled": false
+      }
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Local Server Setup">
+  To run the BackAnt MCP server locally:
+
+  ```bash
+  git clone https://github.com/backant/backant-mcp
+  cd backant-mcp
+  docker compose up -d
+  ```
+
+  Verify it is running:
+
+  ```bash
+  curl http://localhost:8000/health
+  # {"status": "ok"}
+  ```
+
+  Then use `http://localhost:8000/mcp` in place of the remote URL in any config above.
+</Accordion>
+
+---
+
+## Available MCP Tools
+
+Once connected, your agent has access to:
+
+| Tool | Description |
+|------|-------------|
+| `generate_api` | Scaffold a new BackAnt Flask API project |
+| `generate_route` | Add a route (+ service, repository, model) to an existing project |
+| `generate_subroute` | Add a subroute endpoint to an existing route |
+| `analyze_project` | Inspect the structure of an existing BackAnt project |
+| `validate_spec` | Validate a JSON spec without generating any files |
+| `get_project_info` | Get metadata (routes, models, docker presence) about a project |
+| `check_route_exists` | Check whether a specific route has been generated |

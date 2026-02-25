@@ -1,48 +1,49 @@
 ---
 title: "Welcome to BackAnt"
-description: "Scaffold production-ready Flask REST APIs in seconds — and let AI agents build them for you."
+description: "AI-native backend generator."
 ---
 
-BackAnt is a CLI tool and MCP server that generates complete, layered Flask API projects from a single command or a JSON spec. Every generated project follows a strict four-layer architecture (Routes → Services → Repositories → Models) so your codebase stays clean from day one.
+## What is BackAnt?
+
+BackAnt is an AI-native backend generator that scaffolds production-ready Flask REST APIs in seconds — from a single command or a JSON spec. Use it from your terminal with the `ant` CLI, or let your AI coding agent do it via the MCP server.
+
+---
+
+## Get Started
+
+<Card title="Quick Install" icon="terminal">
+  ```bash
+  npx backant
+  ```
+</Card>
 
 <CardGroup cols={2}>
-  <Card title="Install the CLI" icon="terminal" href="/getting-started/installation">
-    Get `ant` installed on your machine in under a minute.
+  <Card title="Installation Guide" icon="rocket" href="/getting-started/installation">
+    Set up the MCP server or CLI on your machine
+  </Card>
+  <Card title="MCP Server" icon="robot" href="/getting-started/agentic-development">
+    Connect your AI agent to BackAnt
+  </Card>
+  <Card title="CLI Reference" icon="square-terminal" href="/cli/overview">
+    Generate APIs, routes, and subroutes from the terminal
   </Card>
   <Card title="Configuration" icon="gear" href="/getting-started/configuration">
-    Set up your environment variables and database connection.
-  </Card>
-  <Card title="Agentic Development" icon="robot" href="/getting-started/agentic-development">
-    Connect your AI coding agent to BackAnt via MCP.
-  </Card>
-  <Card title="CLI Reference" icon="book" href="/cli/overview">
-    Full reference for every `ant` command and flag.
+    Configure environment variables and your database
   </Card>
 </CardGroup>
 
-## How it works
+---
 
-<Steps>
-  <Step title="Scaffold a project">
-    Run `ant generate api my-api` to create a full Flask project with Docker, PostgreSQL, and a working default route.
-  </Step>
-  <Step title="Define your API with a spec">
-    Write a JSON spec describing your routes and subroutes, then pass it with `--json`. BackAnt generates every layer automatically.
-  </Step>
-  <Step title="Add routes incrementally">
-    Use `ant generate route` and `ant generate subroute` to extend your project at any time from the project root.
-  </Step>
-  <Step title="Run with Docker Compose">
-    `docker-compose up --build` — your API is live on `localhost:5000`.
-  </Step>
-</Steps>
+## Quick Links
 
-## Key concepts
-
-| Concept | Description |
-|---------|-------------|
-| **Routes** | Flask Blueprints that handle HTTP — call services and return JSON |
-| **Services** | Business logic layer — validation, calculations, orchestration |
-| **Repositories** | Data access layer — all SQLAlchemy queries live here |
-| **Models** | SQLAlchemy dataclass definitions for your database tables |
-| **MCP Server** | Lets AI agents scaffold and extend your project programmatically |
+<CardGroup cols={3}>
+  <Card title="Architecture" icon="layer-group" href="/architecture/overview">
+    How generated projects are structured
+  </Card>
+  <Card title="Changelog" icon="clock-rotate-left" href="/changelog">
+    Release history
+  </Card>
+  <Card title="Support" icon="envelope" href="mailto:support@backant.io">
+    Get help
+  </Card>
+</CardGroup>

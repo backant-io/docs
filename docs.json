@@ -22,9 +22,7 @@
             "pages": [
               "index",
               "getting-started/installation",
-              "getting-started/configuration",
-              "getting-started/agentic-development",
-              "getting-started/directory-structure"
+              "getting-started/configuration"
             ]
           },
           {
@@ -32,46 +30,61 @@
             "pages": [
               "deployment/overview"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "Architecture",
-        "groups": [
+          },
           {
-            "group": "Concepts",
+            "group": "Changelog",
             "pages": [
-              "architecture/overview"
+              "changelog"
             ]
           }
         ]
       },
       {
-        "tab": "The Basics",
+        "tab": "MCP",
         "groups": [
           {
-            "group": "HTTP Layer",
+            "group": "MCP Server",
+            "pages": [
+              "getting-started/agentic-development",
+              "getting-started/mcp-server"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI",
+        "groups": [
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "cli/installation",
+              "cli/overview",
+              "cli/generate-api",
+              "cli/generate-route",
+              "cli/generate-subroute",
+              "cli/json-spec"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "getting-started/directory-structure"
+            ]
+          },
+          {
+            "group": "The Basics",
             "pages": [
               "the-basics/routing",
               "the-basics/middleware",
               "the-basics/controllers",
               "the-basics/requests",
-              "the-basics/responses"
-            ]
-          },
-          {
-            "group": "Validation & Errors",
-            "pages": [
+              "the-basics/responses",
               "the-basics/schemas",
               "the-basics/error-handling",
               "the-basics/logging"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "Security",
-        "groups": [
+          },
           {
             "group": "Security",
             "pages": [
@@ -79,12 +92,7 @@
               "security/authorization",
               "security/encryption"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "Database",
-        "groups": [
+          },
           {
             "group": "Database",
             "pages": [
@@ -93,42 +101,11 @@
               "database/migrations",
               "database/seeding"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "APIs",
-        "groups": [
+          },
           {
             "group": "External APIs",
             "pages": [
               "apis/aws"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "CLI Reference",
-        "groups": [
-          {
-            "group": "CLI",
-            "pages": [
-              "cli/overview",
-              "cli/generate-api",
-              "cli/generate-route",
-              "cli/generate-subroute",
-              "cli/json-spec"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Changelog",
-        "groups": [
-          {
-            "group": "Changelog",
-            "pages": [
-              "changelog"
             ]
           }
         ]

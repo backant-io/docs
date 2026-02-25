@@ -1,0 +1,75 @@
+---
+title: "CLI Installation"
+description: "Install the ant CLI and scaffold your first Flask API."
+---
+
+## Requirements
+
+- Python 3.11+
+- Docker & Docker Compose (to run generated projects)
+
+---
+
+## Install
+
+```bash
+pip install backant-cli
+```
+
+<Tip>Use a virtual environment to keep your global Python environment clean.</Tip>
+
+---
+
+## Verify
+
+```bash
+ant --help
+```
+
+Expected output:
+
+```
+Usage: ant [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --report  Output machine-readable JSON instead of human-readable text.
+  --help    Show this message and exit.
+
+Commands:
+  generate  Generate API projects, routes, and subroutes.
+```
+
+---
+
+## Your first API
+
+```bash
+ant generate api my-api
+cd my-api
+docker compose up --build
+```
+
+Your API is now running at `http://localhost:5000`.
+
+<Info>
+  The default project includes a working `/default` route, PostgreSQL, and Docker Compose — ready to extend immediately.
+</Info>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="generate api" icon="rocket" href="/cli/generate-api">
+    Full reference for scaffolding a project
+  </Card>
+  <Card title="generate route" icon="route" href="/cli/generate-route">
+    Add routes to an existing project
+  </Card>
+  <Card title="JSON Spec" icon="code" href="/cli/json-spec">
+    Define your entire API in a single JSON file
+  </Card>
+  <Card title="Configuration" icon="gear" href="/getting-started/configuration">
+    Set up environment variables and your database
+  </Card>
+</CardGroup>
