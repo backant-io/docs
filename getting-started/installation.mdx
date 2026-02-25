@@ -1,15 +1,34 @@
 ---
 title: "Installation"
-description: "Install the BackAnt CLI on your machine."
+description: "Install BackAnt — MCP server for your coding agent, or CLI for your terminal."
 ---
 
-## Requirements
+## MCP Server (for AI coding agents)
+
+The fastest way to get started. Run the wizard from your terminal and it will authenticate you, detect your installed coding agents, and configure the BackAnt MCP server automatically:
+
+```bash
+npx backant
+```
+
+The wizard opens a browser for OAuth login, then writes the MCP configuration to each detected agent. No manual config needed.
+
+<Tip>
+  Supports 30+ agents including Claude Code, Cursor, Windsurf, VS Code, Copilot, Cline, and more. See [Agentic Development](/getting-started/agentic-development) for the full list.
+</Tip>
+
+---
+
+## CLI (for your terminal)
+
+The `ant` CLI scaffolds and extends Flask projects from the command line.
+
+### Requirements
 
 - Python 3.11+
-- `pip` for installation
 - Docker & Docker Compose (to run generated projects)
 
-## Install via pip
+### Install via pip
 
 ```bash
 pip install backant-cli
@@ -17,7 +36,7 @@ pip install backant-cli
 
 <Tip>Use a virtual environment to keep your global Python environment clean.</Tip>
 
-## Verify the installation
+### Verify the installation
 
 ```bash
 ant --help
@@ -36,13 +55,21 @@ Commands:
   generate  Generate API projects, routes, and subroutes.
 ```
 
+---
+
 ## Next steps
 
 <CardGroup cols={2}>
+  <Card title="Agentic Development" icon="robot" href="/getting-started/agentic-development">
+    Connect your coding agent to BackAnt via MCP.
+  </Card>
   <Card title="Configuration" icon="gear" href="/getting-started/configuration">
     Configure environment variables and your database connection.
   </Card>
   <Card title="CLI Reference" icon="terminal" href="/cli/overview">
     Explore every available command and flag.
+  </Card>
+  <Card title="Directory Structure" icon="folder-open" href="/getting-started/directory-structure">
+    Understand the generated project layout.
   </Card>
 </CardGroup>
