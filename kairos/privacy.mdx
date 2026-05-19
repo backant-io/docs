@@ -1,0 +1,111 @@
+---
+title: "Privacy and data"
+description: "Exactly what lives where, and what does or does not leave your machine."
+---
+
+Kairos is local-first by design. This page is the canonical statement of what data lives where, what leaves your machine, and how to fully wipe local state if you want to.
+
+## What stays local
+
+Everything to do with memory, dream cycles, and policy lives on your machine.
+
+| Path | Contents |
+|---|---|
+| `~/.claude/kairos/memory/.index.db` | The memory store: lexical index + dense vectors, all in one SQLite file. |
+| `~/.claude/kairos/config.json` | Embedding model tier, dimensionality, Ollama URL. |
+| `~/.claude/kairos/models/` | Docker-managed local model cache. |
+| `~/.claude/kairos/dreams/` | Dream pipeline logs (per-dream timelines). |
+| `~/.claude/kairos/eval/` | Weekly eval reports and replay outputs. |
+| `~/.claude/kairos/.session/` | Cycle-scoped scratch state. |
+| `~/.claude/kairos/.state/` | Daemon state (PID, current cycle, etc.). |
+| `<workspace>/.backant.toml` | Per-project policy. Committed to your repo. |
+
+No codebase content is sent to BackAnt servers for memory operations. Embedding, indexing, and recall all happen on-host.
+
+## What leaves your machine
+
+Three outbound traffic surfaces:
+
+<CardGroup cols={1}>
+  <Card title="Claude API (via your Claude Code installation)" icon="brain">
+    The agent's reasoning calls go to Anthropic via your existing Claude Code setup, using your own Claude credentials. Same privacy surface and policy as any other Claude Code use — Kairos does not add an additional intermediary.
+  </Card>
+
+  <Card title="GitHub (via gh CLI)" icon="github">
+    PR operations, comments, and CI queries go via the `gh` CLI against the repos you've authenticated. Kairos uses your existing GitHub token; no separate credentials are required.
+  </Card>
+
+  <Card title="Subscription heartbeat (backant.io)" icon="key">
+    A small periodic call validates your subscription is active. Sends: an auth token, a heartbeat timestamp. Does not send: codebase content, memory entries, prompt content, or any user data beyond the auth token.
+  </Card>
+</CardGroup>
+
+## What Kairos never sends
+
+To be explicit, none of these ever leave your machine via Kairos:
+
+- Memory entries (STM or LTM content)
+- Embedding vectors
+- Dream-cycle outputs
+- Eval report contents
+- File contents from your codebase that aren't already part of a Claude API call you would have made anyway
+- `.backant.toml` content
+
+The Claude API call for reasoning is the only path by which code-derived content reaches a third party — and that's the same path Claude Code itself uses.
+
+## What about telemetry?
+
+Kairos does not emit anonymous telemetry. There is no opt-out toggle because there is nothing to opt out of.
+
+If you want to verify, the network surface is small and easily observable:
+
+```bash
+# Watch what Kairos talks to
+lsof -i -P -n -p $(pgrep -f "backant-daemon")
+```
+
+You should see connections to: `api.anthropic.com`, `api.github.com`, `mcp.backant.io` (heartbeat). Plus whatever your Claude Code installation does on its own.
+
+## Resetting local state
+
+To wipe all Kairos local state and start clean:
+
+```bash
+backant stop
+rm -rf ~/.claude/kairos/
+```
+
+You'll need to re-run `backant login`, `backant memory init`, and `backant start` to set up again.
+
+### Wipe memory only, keep credentials and model cache
+
+```bash
+backant stop
+rm -rf ~/.claude/kairos/memory/.index.db
+rm -rf ~/.claude/kairos/dreams/
+rm -rf ~/.claude/kairos/eval/
+rm -rf ~/.claude/kairos/.session/
+rm -rf ~/.claude/kairos/.state/
+backant memory init
+```
+
+This avoids re-pulling the Docker image and model (~3 GB).
+
+### Wipe per-workspace state only
+
+```bash
+cd /path/to/workspace
+rm -rf .session .state
+# .backant.toml is preserved
+```
+
+Restarting the daemon will rebuild session state from disk.
+
+## Working air-gapped
+
+Once the Docker image and embedding model are pulled, the local memory pipeline works offline. The two things that still need network are:
+
+1. **Claude API calls** — required for reasoning. Without these, no cycles run.
+2. **Subscription heartbeat** — required at startup. After startup, brief outages are tolerated.
+
+If you need a fully air-gapped deployment, contact [support@backant.io](mailto:support@backant.io) — that's an enterprise scenario with a different shape.

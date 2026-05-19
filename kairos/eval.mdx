@@ -1,0 +1,98 @@
+---
+title: "Eval reports"
+description: "Weekly compliance, cost, and outcome reports — plus a small simulated-scenario replay to catch silent regressions."
+---
+
+`backant eval` is Kairos's self-report layer. It computes weekly metrics against the recent observable history and runs a small **simulated-scenario replay** to detect quiet regressions that the live cycle wouldn't notice.
+
+Run it every Friday alongside your retros.
+
+## `backant eval run`
+
+Run the eval and write a Markdown report.
+
+```bash
+backant eval run                                 # default 7-day window
+backant eval run --window-days 14                # two weeks of history
+backant eval run --dataset-dir ./eval/dataset    # custom replay dataset
+```
+
+| Option | Default | Notes |
+|---|---|---|
+| `--window-days` | `7` | Look-back window for metrics. |
+| `--dataset-dir` | `<workspace>/eval/dataset` | Scenario-replay dataset directory. |
+
+Reports land under `~/.claude/kairos/eval/`. Each report is timestamped and includes:
+
+- **Compliance**: did Kairos respect `.backant.toml` policy across the window? (e.g. did it touch any excluded paths?)
+- **Cost**: per-cycle USD, per-PR USD, daily totals, comparisons against prior weeks.
+- **Outcome**: PRs opened, PRs merged, CI green / red breakdown, mean time to merge.
+- **Scenario replay**: small LLM-simulated tasks run against the current memory state, to detect regressions in recall quality or judgment.
+
+## `backant eval report`
+
+Print the most recent report:
+
+```bash
+backant eval report
+```
+
+Useful for scripting (paste into Slack, attach to a retro doc).
+
+## What scenario replay catches
+
+The live loop's outcome metrics tell you whether cycles are succeeding *on average*. Scenario replay catches a different failure mode: silent regressions in *capability*.
+
+Example: a memory rewrite changes how entries are scored. Cycles continue to ship PRs, so the cost and outcome metrics look fine. But the scenario replay shows that on a known set of test cues, recall quality dropped 30%. That's the signal the eval is designed to surface.
+
+The replay is intentionally adversarial — small, fixed, and run on every eval — so changes that look fine in production but break the underlying memory layer get caught.
+
+## Reading a report
+
+A healthy week looks like:
+
+```
+Compliance: 100% (0 policy violations)
+Cost:       $73.20 across 142 cycles  ($0.52 / cycle)
+Outcome:    19 PRs opened, 14 merged (7-day rolling mean: 12)
+Replay:     12/12 scenarios pass; recall@5 = 0.81 (last week: 0.79)
+```
+
+An unhealthy week — investigate any of:
+
+- Policy violations > 0 (Kairos is doing something it shouldn't)
+- Cost per cycle climbing without outcome rising (cycles getting expensive without producing more PRs)
+- Replay regressions (recall quality dropping, even if production looks fine)
+
+## Where reports live
+
+```
+~/.claude/kairos/eval/
+├── 2026-W19.md          # weekly reports, timestamped
+├── 2026-W20.md
+└── scenarios/
+    └── replay-runs/     # per-scenario replay outputs
+```
+
+The Markdown files are designed to be readable on their own — share them with teammates, paste them into Slack, or pipe them through `glow` for a colorized terminal view.
+
+## Tuning the eval window
+
+The default 7-day window is right for most users. Two cases to adjust:
+
+- **High-velocity teams** (>20 PRs/day): reduce to 3 days so trends don't get washed out
+- **Slow-moving codebases** (a few PRs/week): extend to 14 or 28 days so each report has enough signal
+
+```bash
+backant eval run --window-days 3
+```
+
+## What's not in the report
+
+For privacy, the eval report does **not** include:
+
+- Raw memory entries
+- Specific PR diffs
+- Anything that could leak codebase content
+
+Only aggregate metrics + scenario-replay pass/fail counts. If you want detail, run `backant memory stats` or `backant memory render` against your own machine.

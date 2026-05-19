@@ -1,0 +1,163 @@
+---
+title: "Configuration"
+description: "The .backant.toml file controls per-project policy: what Kairos can do, where it can do it, and what it costs."
+---
+
+`backant setup` generates a `.backant.toml` at the root of each project. This file is the **only** place you change Kairos's per-project behaviour. The file is committed to your repo and added to `CODEOWNERS` during setup so policy changes route to you for review.
+
+## Default `.backant.toml`
+
+```toml
+[permissions]
+merge = false
+merge_migrations = false
+create_issues = true
+create_epics = true
+strategic_work = true
+modify_dependencies = true
+modify_ci = false
+modify_infrastructure = false
+security_fixes = true
+
+[scope]
+include = []
+exclude = [".github/workflows/**", "terraform/**", "*.tfvars"]
+
+[behavior]
+max_cycles_per_day = 100
+max_cost_per_cycle = 15.0
+min_sleep = 10
+deploy_verification = "full"
+
+[branches]
+target = "main"
+prefix = "kairos/"
+```
+
+## `[permissions]`
+
+What Kairos is allowed to do.
+
+| Key | Default | What it controls |
+|---|---|---|
+| `merge` | `false` | Can Kairos click "merge" on its own PRs without waiting for you? |
+| `merge_migrations` | `false` | Can Kairos merge PRs that touch DB migrations? Held separately because migrations are higher-blast-radius. |
+| `create_issues` | `true` | May Kairos open new GitHub issues? |
+| `create_epics` | `true` | May Kairos plan multi-PR epics? Disable for tighter control over scope. |
+| `strategic_work` | `true` | Allow planning/design work, not just reactive bug-fixing. |
+| `modify_dependencies` | `true` | Touch `package.json`, `requirements.txt`, etc. |
+| `modify_ci` | `false` | Edit `.github/workflows` or other CI configs. |
+| `modify_infrastructure` | `false` | Touch terraform / k8s / IaC. |
+| `security_fixes` | `true` | Propose patches when CVEs or insecure patterns are detected. |
+
+<Warning>
+  Leave `merge = false` until you've built trust with Kairos on your codebase. PRs will sit waiting for your approval — which is what you want during the first week or two.
+</Warning>
+
+## `[scope]`
+
+Where Kairos is allowed to look and edit.
+
+| Key | Default | Notes |
+|---|---|---|
+| `include` | `[]` | Glob allow-list. Empty means "everything not excluded". |
+| `exclude` | `[".github/workflows/**", "terraform/**", "*.tfvars"]` | Always off-limits. Match against repo-relative paths. |
+
+If you set `include`, only those paths are visible to Kairos. Useful for monorepos where you want Kairos focused on one app.
+
+```toml
+[scope]
+include = ["packages/api/**", "packages/shared/**"]
+exclude = [".github/workflows/**", "infra/**"]
+```
+
+## `[behavior]`
+
+Safety caps and pacing.
+
+| Key | Default | Notes |
+|---|---|---|
+| `max_cycles_per_day` | `100` | Daemon stops for the day after this. Cycles roll over at local midnight. |
+| `max_cost_per_cycle` | `15.0` | USD cap per cycle. Aborts a cycle that would exceed. |
+| `min_sleep` | `10` | Seconds between cycles. Overridden by `--turbo` and `--pace` flags on `backant start`. |
+| `deploy_verification` | `"full"` | `"full"` runs the deploy-verification gate; `"fast"` skips slow checks; `"off"` disables. |
+
+<Tip>
+  The cheapest cycle on a small repo is roughly $0.10–$0.50. Most cycles land between $1 and $5. `max_cost_per_cycle = 15.0` is generous; if you're seeing high bills, lower it to 5.0 and inspect with `backant eval run`.
+</Tip>
+
+## `[branches]`
+
+PR strategy.
+
+| Key | Default | Notes |
+|---|---|---|
+| `target` | `"main"` | Base branch for Kairos-created PRs. |
+| `prefix` | `"kairos/"` | Branch prefix. Helps you filter Kairos's work from your own. |
+
+## Reloading policy
+
+Edits to `.backant.toml` are **not** picked up by a running daemon. Restart with `--fresh` so the new policy is applied immediately:
+
+```bash
+backant stop
+backant start --fresh
+```
+
+The reset is hard but bounded — only in-process judgment is dropped. Memory, lessons, learnings, dream state, and eval reports are preserved.
+
+## Common adjustments
+
+<AccordionGroup>
+  <Accordion title="Building trust gradually">
+    Week 1: defaults (`merge = false`, `modify_ci = false`, `modify_infrastructure = false`).
+
+    Week 2–3: review Kairos's PRs daily; if they look clean, consider flipping `merge = true` on quiet evenings only.
+
+    Week 4+: if you want it, `merge = true` plus `modify_ci = true` for non-critical CI changes. Keep `modify_infrastructure = false` indefinitely unless you have strong out-of-band gates.
+  </Accordion>
+
+  <Accordion title="Reducing the cost ceiling">
+    If a single cycle is more expensive than expected:
+
+    ```toml
+    [behavior]
+    max_cost_per_cycle = 5.0
+    ```
+
+    Combine with `backant start --pace` so Kairos auto-throttles when your Anthropic rate-limit window heats up.
+  </Accordion>
+
+  <Accordion title="Monorepo focus">
+    Restrict Kairos to one app inside a monorepo:
+
+    ```toml
+    [scope]
+    include = ["apps/api/**"]
+    ```
+
+    Subsequent cycles only observe and act inside `apps/api/`.
+  </Accordion>
+
+  <Accordion title="Strict read-only mode">
+    Useful while evaluating Kairos against a sensitive repo. Kairos will still observe and judge, but will not write code:
+
+    ```toml
+    [permissions]
+    merge = false
+    create_issues = false
+    create_epics = false
+    strategic_work = false
+    modify_dependencies = false
+    modify_ci = false
+    modify_infrastructure = false
+    security_fixes = false
+    ```
+
+    Effectively reduces Kairos to a `backant watch`-only product.
+  </Accordion>
+</AccordionGroup>
+
+## Where `.backant.toml` lives
+
+At the **root of each workspace**, alongside your code. It's a normal committed file; Kairos enforces the policy at every cycle. Setup auto-adds an entry to `.github/CODEOWNERS` for `.backant.toml` so the file is review-gated.

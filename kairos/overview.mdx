@@ -1,0 +1,64 @@
+---
+title: "Overview"
+description: "Kairos is an autonomous engineering loop that observes your repository, judges what to work on next, and ships the change — on a continuous cycle."
+---
+
+Kairos is the autonomous engineer in the BackAnt suite. It runs locally on your machine and operates on a continuous **observe → judge → act** loop against any git repository you point it at.
+
+<Info>
+  Kairos ships as the `backant-kairos` npm package. Most users install it via `npx backant-kairos` from inside the repo they want it to work on.
+</Info>
+
+## What a cycle looks like
+
+Each cycle of the loop:
+
+1. **Observes** the workspace — open PRs, CI signals, recent commits, issues, prior agent traces.
+2. **Judges** the single highest-leverage next action.
+3. **Acts** — implements the change, opens a PR, runs verification, or hands back to you with reasoning.
+
+Between cycles, Kairos sleeps for a configurable interval. Cycles never run in parallel for the same workspace.
+
+## What makes it different
+
+Two features distinguish Kairos from a stateless coding assistant:
+
+<CardGroup cols={2}>
+  <Card title="Persistent memory" icon="brain">
+    Decisions, conventions, validated assumptions, and prior failures survive across sessions. Recall is hybrid — combining lexical, semantic, and lifecycle signals — and runs entirely on your machine.
+  </Card>
+  <Card title="Offline consolidation" icon="moon">
+    Periodically, Kairos runs a *dream cycle* — a structured pass that links related observations, distills durable lessons, and stages candidates for your review. Inspired by sleep-dependent memory consolidation.
+  </Card>
+</CardGroup>
+
+## Local-first by design
+
+Embeddings, indexing, and recall happen on your machine. No codebase content is sent to a third party for memory operations. The only outbound traffic is:
+
+- Reasoning calls to the Claude API via your existing Claude Code installation
+- GitHub operations via `gh` against the repos you authenticate
+- A small periodic heartbeat to validate your BackAnt subscription
+
+See [Privacy and data](/kairos/privacy) for the full breakdown.
+
+## When to use it
+
+Kairos is meaningful when:
+
+- You have a long-running codebase where the same conventions need to be re-applied across many changes.
+- You have recurring engineering chores (fixing flaky tests, addressing PR feedback, applying small refactors) that are individually small but add up.
+- You want an agent that remembers what it learned yesterday and applies it today.
+
+It is less meaningful for one-shot exploration or for projects that change shape every week. For that, a chat-style coding assistant is the right fit.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/kairos/installation">
+    Install Kairos and walk through the first-run setup.
+  </Card>
+  <Card title="Daily use" icon="terminal" href="/kairos/daily-use">
+    Start, stop, watch, and inspect the daemon.
+  </Card>
+</CardGroup>

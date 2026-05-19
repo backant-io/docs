@@ -1,0 +1,105 @@
+---
+title: "Daily use"
+description: "Start, stop, watch, and inspect the Kairos daemon during day-to-day operation."
+---
+
+Once installed, you interact with Kairos through five top-level commands.
+
+## Start
+
+```bash
+backant start                    # current workspace
+backant start /path/to/repo      # explicit workspace
+```
+
+By default, the daemon sleeps between cycles to keep costs in check. Three flags adjust that behaviour:
+
+| Flag | Effect |
+|---|---|
+| `--turbo` | Disables inter-cycle sleep. High token usage; use for short focused bursts. |
+| `--fresh` | Hard reset. Discards in-process judgment (`.session/`, `.state/`) so the next cycle re-reads memory from disk. Memory itself, `.backant.toml`, and your lessons/learnings are preserved. |
+| `--pace` | Auto-throttle. Stretches inter-cycle sleep when Anthropic rate-limit utilization crosses 50% of any window; pauses outright above 95% until the window resets. |
+
+<Tip>
+  `--pace` is the recommended flag for long-running daemons on a Max subscription. It keeps Kairos working without burning through your rate-limit headroom.
+</Tip>
+
+## Stop
+
+```bash
+backant stop
+```
+
+Sends a graceful shutdown signal to the daemon. The current cycle finishes; subsequent cycles do not start. Memory and configuration are unaffected.
+
+## Watch
+
+```bash
+backant watch
+```
+
+Live event feed with a status bar at the bottom. Each cycle's observe → judge → act decision streams in real time. Exit with Ctrl+C — does not stop the daemon, only detaches the viewer.
+
+This is the right thing to keep open in a side terminal during a coding session.
+
+## Status
+
+```bash
+backant status
+```
+
+One-shot snapshot. Exits cleanly. Suitable for scripting (CI checks, dashboards). Shows:
+
+- Daemon running / stopped
+- Workspace, current cycle number, last-cycle outcome
+- Subscription validity
+- Recent memory growth
+- Pending dream-bucket items
+
+## Authentication
+
+```bash
+backant login                    # browser auth flow
+backant logout                   # clear stored credentials
+```
+
+Re-run `login` after a subscription renewal or account switch. Credentials persist across reboots under `~/.claude/kairos/`.
+
+## Per-workspace vs. user-level state
+
+| Level | What lives here |
+|---|---|
+| Workspace (the repo) | `.backant.toml` (policy), `.session/`, `.state/` (in-cycle scratch). All committed or gitignored as appropriate. |
+| User (`~/.claude/kairos/`) | Memory store, dream logs, eval reports, credentials, embedding-model cache. Shared across all workspaces you've connected. |
+
+Memory is intentionally user-level rather than per-workspace — observations about one codebase often inform decisions about another (e.g. "the team uses Zod everywhere"). If you want strict per-workspace isolation, override `KAIROS_MEMORY_DB` to point at a workspace-local DB path before starting the daemon.
+
+## Configuration reload
+
+Editing `.backant.toml` while the daemon is running does **not** auto-reload the policy. Restart with `--fresh` to ensure the new policy takes effect immediately:
+
+```bash
+backant stop
+backant start --fresh
+```
+
+See [Configuration](/kairos/configuration) for the full `.backant.toml` schema.
+
+## Quick reference
+
+```bash
+backant                          # first-run setup OR resume in this workspace
+backant login                    # auth
+backant logout                   # de-auth
+backant setup                    # re-scan, refresh skills
+backant start [--turbo|--fresh|--pace]   # start the daemon
+backant stop                     # stop the daemon
+backant watch                    # live event feed
+backant status                   # one-shot snapshot
+
+backant memory <sub>             # see /kairos/memory
+backant dream <sub>              # see /kairos/dream
+backant eval <sub>               # see /kairos/eval
+```
+
+Pass `--help` on any subcommand for flags and arguments.

@@ -1,0 +1,178 @@
+---
+title: "Troubleshooting"
+description: "Common failure modes and how to fix them."
+---
+
+The first move is always `backant status`. It surfaces most failures with a clear next step. The rest of this page is for when `status` isn't enough.
+
+## Daemon won't start
+
+<AccordionGroup>
+  <Accordion title="Subscription expired or inactive">
+    Symptom: `backant start` says "Backant requires an active subscription".
+
+    Fix: re-run `backant login`. If the subscription is genuinely lapsed, renew at [backant.io](https://backant.io).
+  </Accordion>
+
+  <Accordion title="Docker not running">
+    Symptom: `backant memory init` or `backant start` fails with "cannot connect to Docker daemon".
+
+    Fix: start Docker Desktop (macOS) or `sudo systemctl start docker` (Linux). Verify with `docker ps`.
+  </Accordion>
+
+  <Accordion title="Memory not initialised">
+    Symptom: `ENOENT: no such file or directory` referencing `~/.claude/kairos/memory/`.
+
+    Fix: run `backant memory init`. One-time, ~3-5 min depending on tier + network.
+  </Accordion>
+
+  <Accordion title="Stale .session / .state">
+    Symptom: daemon refuses to start, citing "session already in progress" or returns to a corrupt state on every cycle.
+
+    Fix: `backant start --fresh` discards in-process state and re-reads memory from disk. Memory itself, config, and lessons are preserved.
+
+    ```bash
+    backant stop
+    backant start --fresh
+    ```
+  </Accordion>
+
+  <Accordion title="Port conflict on Ollama">
+    Symptom: `memory init` fails because `127.0.0.1:11434` is taken.
+
+    Fix: another Ollama instance (native or container) is already bound to the default port. Stop it, or set `KAIROS_OLLAMA_URL` to a different port before re-running init.
+
+    ```bash
+    # Identify the offender
+    lsof -i :11434
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Memory issues
+
+<AccordionGroup>
+  <Accordion title="Recall returns nothing useful">
+    Three causes in order of likelihood:
+
+    1. **Empty memory.** A brand-new install has nothing to recall. Memory accumulates over the first few cycles.
+    2. **Wrong tier.** Try `backant memory recall "<cue>" --tier any`.
+    3. **Stale embeddings.** If you switched models via `memory init` without running `memory reindex`, the stored vectors don't match the new model's dimensionality.
+
+    ```bash
+    backant memory reindex
+    ```
+  </Accordion>
+
+  <Accordion title="Schema error on opening DB">
+    Symptom: `SqliteError: no such column: ...` or similar.
+
+    Cause: the DB was created by an older Kairos version with a different schema. Migrations are not yet fully automated for all schema changes.
+
+    Fix: archive and recreate.
+
+    ```bash
+    backant stop
+    mv ~/.claude/kairos/memory/.index.db ~/.claude/kairos/memory/.index.db.bak
+    backant memory init
+    ```
+
+    Your dream logs, eval reports, and `.backant.toml` are unaffected.
+  </Accordion>
+
+  <Accordion title="Memory store growing too large">
+    Memory does **not** grow unbounded — STM entries decay over time and are archived below a threshold. But you can inspect:
+
+    ```bash
+    backant memory stats
+    ```
+
+    If LTM is bloated with consolidated facts that are no longer relevant, the wake-time triage tools (`memory_promote`, `memory_demote`, `prune_with_confirmation`) handle pruning. The agent runs these as part of its normal cycle.
+
+    Manual pruning is rarely needed.
+  </Accordion>
+</AccordionGroup>
+
+## Cost issues
+
+<AccordionGroup>
+  <Accordion title="Cycles burning too many tokens">
+    Three things to try, in order of impact:
+
+    1. **Throttle**: `backant start --pace`. Auto-stretches sleep when rate-limit utilization is high.
+    2. **Lower the per-cycle cap**: drop `max_cost_per_cycle` in `.backant.toml` from `15.0` to `5.0`.
+    3. **Inspect**: `backant eval run --window-days 3` shows you which cycles are expensive and why.
+  </Accordion>
+
+  <Accordion title="Hitting the daily cycle cap">
+    `max_cycles_per_day = 100` is the default safety cap. The daemon stops for the day when it's hit and resumes at local midnight.
+
+    Most workspaces don't approach 100 cycles/day. If you're hitting it, that's a signal the loop is spinning — either:
+
+    - The repo is unusually busy
+    - Cycles are completing trivially without doing work (memory not loading, network flapping)
+    - You set the cap unusually low
+
+    `backant eval report` will show whether cycles are productive.
+  </Accordion>
+</AccordionGroup>
+
+## PR / GitHub issues
+
+<AccordionGroup>
+  <Accordion title="Kairos can't open PRs">
+    Symptom: cycle reports "gh: not authenticated" or PR-create fails.
+
+    Fix: `gh auth status` to verify, `gh auth login` if needed. Kairos uses your existing `gh` token.
+  </Accordion>
+
+  <Accordion title="Kairos is making changes I don't want">
+    Tighten `.backant.toml`:
+
+    ```toml
+    [permissions]
+    merge = false
+    modify_dependencies = false
+    modify_ci = false
+
+    [scope]
+    exclude = ["the/path/to/protect/**"]
+    ```
+
+    Restart with `--fresh` so policy changes take immediate effect.
+  </Accordion>
+
+  <Accordion title="PRs are too aggressive / large">
+    By default, Kairos prefers small focused PRs. If you're seeing large ones, two knobs:
+
+    - Disable `[permissions].create_epics` — without epics, Kairos sticks to single-PR work
+    - Set `[permissions].strategic_work = false` — limits Kairos to reactive work (bug fixes, PR feedback)
+
+    Restart with `--fresh`.
+  </Accordion>
+</AccordionGroup>
+
+## Daemon got into a bad state
+
+The nuclear option:
+
+```bash
+backant stop
+rm -rf ~/.claude/kairos/.session ~/.claude/kairos/.state
+backant start --fresh
+```
+
+This preserves memory, dreams, eval reports, credentials, and `.backant.toml`. Only in-process scratch is dropped.
+
+If even that doesn't help, full reset is documented on the [Privacy page](/kairos/privacy#resetting-local-state).
+
+## Still stuck?
+
+- File an issue at [github.com/backant-io/backant-kairos/issues](https://github.com/backant-io/backant-kairos/issues)
+- Email [support@backant.io](mailto:support@backant.io)
+
+When reporting, include:
+
+- Output of `backant status` and `backant memory stats`
+- The contents of `.backant.toml` (no secrets — it's policy)
+- The relevant section of `~/.claude/kairos/logs/` for the time-of-incident

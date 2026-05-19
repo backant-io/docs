@@ -55,6 +55,41 @@
         ]
       },
       {
+        "tab": "Kairos",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "kairos/overview",
+              "kairos/installation"
+            ]
+          },
+          {
+            "group": "Daily operation",
+            "pages": [
+              "kairos/daily-use",
+              "kairos/configuration"
+            ]
+          },
+          {
+            "group": "Commands",
+            "pages": [
+              "kairos/memory",
+              "kairos/dream",
+              "kairos/eval"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "kairos/privacy",
+              "kairos/troubleshooting",
+              "kairos/architecture"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "CLI",
         "groups": [
           {

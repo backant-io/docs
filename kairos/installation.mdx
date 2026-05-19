@@ -1,0 +1,110 @@
+---
+title: "Installation"
+description: "Install Kairos and walk through the first-run setup wizard."
+---
+
+## Quick install
+
+From inside the repo you want Kairos to work on:
+
+```bash
+cd /path/to/your/repo
+npx backant-kairos
+```
+
+The first run walks you through four steps automatically: login, project setup, memory initialization, and daemon start.
+
+<Info>
+  Kairos works at the workspace level. Each repo gets its own `.backant.toml` policy file and its own daemon. Memory itself lives at the user level (under `~/.claude/kairos/`) and is shared across all workspaces.
+</Info>
+
+## Requirements
+
+| Requirement | Why |
+|---|---|
+| macOS or Linux | Tested platforms. Windows via WSL is best-effort. |
+| [Claude Code](https://claude.ai/code) installed and signed in | Kairos uses your Claude Code installation for reasoning calls. |
+| [GitHub CLI](https://cli.github.com/) (`gh`) authenticated | For PR operations and CI introspection. |
+| [Docker](https://www.docker.com/) running | Hosts the local embedding service. |
+| Active BackAnt subscription | Validated on daemon start. |
+
+## The first-run wizard
+
+`npx backant-kairos` runs these steps in order. Each step is also runnable individually as a subcommand.
+
+<Steps>
+  <Step title="Login">
+    Opens a browser auth flow against backant.io to issue credentials. Credentials persist across reboots under `~/.claude/kairos/`.
+
+    ```bash
+    backant login
+    ```
+  </Step>
+
+  <Step title="Project setup">
+    Scans the workspace, detects language/framework/CI conventions, and generates `.backant.toml` (the per-project policy file). Also installs recommended skills and plugins, and adds `.backant.toml` to `CODEOWNERS` so policy changes route to you.
+
+    ```bash
+    backant setup
+    ```
+
+    Idempotent — existing `.backant.toml` is preserved.
+  </Step>
+
+  <Step title="Memory init">
+    One-time installation of the local embedding stack. Pulls the Docker image plus a Qwen3-Embedding model sized to your hardware, and writes `~/.claude/kairos/config.json`.
+
+    ```bash
+    backant memory init
+    ```
+
+    Takes 3–5 minutes depending on the tier and your network. See the [memory page](/kairos/memory#memory-init) for tier sizing.
+  </Step>
+
+  <Step title="Start the daemon">
+    Boots the daemon against the current workspace and begins the observe-judge-act loop.
+
+    ```bash
+    backant start
+    ```
+  </Step>
+</Steps>
+
+## Subsequent installs
+
+Once the wizard has run once per workspace, you only need `backant start` to resume. Running `backant` alone detects whether to resume or run setup.
+
+```bash
+cd /path/to/your/repo
+backant
+```
+
+## Re-running setup
+
+If you change `.backant.toml`, add a new repo, or want to refresh installed skills:
+
+```bash
+backant setup
+```
+
+Existing config is preserved; new conventions are merged where safe.
+
+## Switching embedding models
+
+After the initial install, you can re-run `memory init` to pick a different Qwen3 tier. If you do, **run `memory reindex` afterwards** to re-embed everything against the new model — otherwise recall will produce dimension mismatches.
+
+```bash
+backant memory init       # pick new tier
+backant memory reindex    # re-embed all entries
+```
+
+## Uninstall
+
+To stop the daemon and remove all Kairos state from your machine:
+
+```bash
+backant stop
+rm -rf ~/.claude/kairos/
+```
+
+The npm package itself can be removed with `npm uninstall -g backant-kairos` if installed globally, or just deleted if you used `npx`.

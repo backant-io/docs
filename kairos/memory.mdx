@@ -1,0 +1,135 @@
+---
+title: "Memory"
+description: "Inspect and manage the local memory store. Recall is automatic during cycles — these commands are for introspection."
+---
+
+Kairos's memory store lives at `~/.claude/kairos/memory/`. It is a single embedded database with both lexical and dense indexes co-located. Recall happens locally; no codebase content is sent to a third party.
+
+The daemon recalls automatically during cycles. These commands are for introspection, debugging, and one-off cleanups.
+
+## `backant memory init`
+
+One-time installation of the embedding stack. Detects your hardware, picks an appropriate Qwen3-Embedding model tier, and pulls the Docker image plus the model.
+
+```bash
+backant memory init
+```
+
+### Tier sizing
+
+| Tier | Approx. RAM | When chosen |
+|---|---|---|
+| 0.6B | 4 GB+ | Default. Fast. Sufficient for most workspaces. |
+| 4B | 16 GB+ | Larger context, slightly higher recall quality. |
+| 8B | 32 GB+ | Highest quality. Slower. Worth it for very large memories. |
+
+<Note>
+  Re-running `memory init` lets you switch tiers later. **If you switch tiers, run `memory reindex` afterwards** — otherwise the stored vectors don't match the new model's dimensionality and recall will fail.
+</Note>
+
+## `backant memory stats`
+
+```bash
+backant memory stats
+```
+
+A summary of the current memory store:
+
+- Total entries per tier (STM, LTM)
+- Weight histogram (how decayed the population is)
+- Top-cited entries
+- Edge counts (proposed / approved / rejected)
+- Dream-bucket size (pending consolidations)
+
+Use this as a daily health check. A sudden spike in STM, edges piling up unapproved, or weights collapsing toward zero are all signals worth investigating.
+
+## `backant memory recall`
+
+Manual recall against a text cue. Mostly for inspection.
+
+```bash
+backant memory recall "rate limit handling"
+backant memory recall "auth token refresh" -k 5 --tier ltm
+```
+
+| Option | Default | Notes |
+|---|---|---|
+| `-k <n>` | 10 | Number of hits to return |
+| `--tier` | `any` | `any`, `stm`, or `ltm` |
+
+Each hit shows a score (combining lexical, semantic, and lifecycle signals), tier, type, ID, and content preview. The agent uses the same recall surface during cycles via MCP.
+
+## `backant memory inspect`
+
+Print one entry with its outgoing and incoming edges:
+
+```bash
+backant memory inspect ltm_architecture_007
+```
+
+Useful for understanding *why* a particular fact is being recalled — you see the linked entries and their citation counts.
+
+## `backant memory graph`
+
+Walk the edge graph from an entry, printed as a text tree.
+
+```bash
+backant memory graph ltm_architecture_007
+backant memory graph stm_2026_05_15_a0633a46 --depth 3
+```
+
+| Option | Default | Notes |
+|---|---|---|
+| `--depth` | 2 | How many hops to follow |
+
+Good for spotting tight clusters or orphan entries.
+
+## `backant memory render`
+
+Read-only Markdown snapshot. Useful for grep, day-over-day diffing, or sharing with teammates.
+
+```bash
+backant memory render > snapshot.md
+backant memory render --tier stm > stm-snapshot.md
+```
+
+| Option | Default | Notes |
+|---|---|---|
+| `--tier` | `ltm` | `stm` or `ltm` |
+
+<Warning>
+  The snapshot is read-only. Edits made to the Markdown file are **not** round-tripped into memory. The agent reads memory exclusively through its MCP interface.
+</Warning>
+
+## `backant memory reindex`
+
+Re-embed every entry from scratch.
+
+```bash
+backant memory reindex
+```
+
+Run this after switching embedding models via `memory init`, or if you suspect index corruption. Typical run time is a few minutes for a healthy store.
+
+## Memory tiers
+
+Memory entries live in one of two tiers, with different lifecycle rules:
+
+| Tier | Purpose | Decay |
+|---|---|---|
+| **STM** (short-term) | In-session observations, retries, anomalies. Recent ground truth. | Fast. Entries that aren't reinforced collapse below the archive threshold within a small number of cycles. |
+| **LTM** (long-term) | Consolidated, durable facts: architecture decisions, conventions, distilled failure signatures. | Slow. Survives long periods of disuse. Only pruned by explicit promotion/demotion or the `prune_with_confirmation` MCP tool. |
+
+<Tip>
+  The two-tier design follows the *complementary learning systems* idea from cognitive science: a fast store for current state, a slow store for durable knowledge, with structured promotion between them. The exact decay rates and thresholds are tuned ongoing; see the [architecture page](/kairos/architecture) for the high-level shape.
+</Tip>
+
+## Memory locations
+
+| Path | Contents |
+|---|---|
+| `~/.claude/kairos/memory/.index.db` | The store itself (SQLite with lexical + dense indexes). |
+| `~/.claude/kairos/config.json` | Embedding model tier, dimensionality, Ollama URL. |
+| `~/.claude/kairos/models/` | Docker-managed local model cache. |
+
+Memory is user-level — shared across all workspaces. If you want per-workspace isolation, set `KAIROS_MEMORY_DB=/path/to/workspace.db` before starting the daemon.
