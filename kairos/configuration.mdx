@@ -77,13 +77,13 @@ Safety caps and pacing.
 
 | Key | Default | Notes |
 |---|---|---|
-| `max_cycles_per_day` | `100` | Daemon stops for the day after this. Cycles roll over at local midnight. |
-| `max_cost_per_cycle` | `15.0` | USD cap per cycle. Aborts a cycle that would exceed. |
-| `min_sleep` | `10` | Seconds between cycles. Overridden by `--turbo` and `--pace` flags on `backant start`. |
-| `deploy_verification` | `"full"` | `"full"` runs the deploy-verification gate; `"fast"` skips slow checks; `"off"` disables. |
+| `max_cycles_per_day` | `100` | Daily safety cap. Kairos stops for the day after this. Rolls over at local midnight. |
+| `max_cost_per_cycle` | `15.0` | USD cap per turn. Aborts anything that would exceed. |
+| `min_sleep` | `10` | Seconds between turns. Overridden by `--turbo` and `--pace` flags on `backant start`. |
+| `deploy_verification` | `"full"` | `"full"` enforces the deploy-verification gate; `"fast"` skips slow checks; `"off"` disables. |
 
 <Tip>
-  The cheapest cycle on a small repo is roughly $0.10–$0.50. Most cycles land between $1 and $5. `max_cost_per_cycle = 15.0` is generous; if you're seeing high bills, lower it to 5.0 and inspect with `backant eval run`.
+  The cheapest turn on a small repo is roughly $0.10–$0.50. Most land between $1 and $5. `max_cost_per_cycle = 15.0` is generous; if you're seeing high bills, lower it to 5.0 and inspect with `backant eval run`.
 </Tip>
 
 ## `[branches]`
@@ -118,7 +118,7 @@ The reset is hard but bounded — only in-process judgment is dropped. Memory, l
   </Accordion>
 
   <Accordion title="Reducing the cost ceiling">
-    If a single cycle is more expensive than expected:
+    If a single turn is more expensive than expected:
 
     ```toml
     [behavior]
@@ -136,7 +136,7 @@ The reset is hard but bounded — only in-process judgment is dropped. Memory, l
     include = ["apps/api/**"]
     ```
 
-    Subsequent cycles only observe and act inside `apps/api/`.
+    Kairos will only look and act inside `apps/api/`.
   </Accordion>
 
   <Accordion title="Strict read-only mode">
@@ -160,4 +160,4 @@ The reset is hard but bounded — only in-process judgment is dropped. Memory, l
 
 ## Where `.backant.toml` lives
 
-At the **root of each workspace**, alongside your code. It's a normal committed file; Kairos enforces the policy at every cycle. Setup auto-adds an entry to `.github/CODEOWNERS` for `.backant.toml` so the file is review-gated.
+At the **root of each workspace**, alongside your code. It's a normal committed file; Kairos enforces the policy on every turn. Setup auto-adds an entry to `.github/CODEOWNERS` for `.backant.toml` so the file is review-gated.

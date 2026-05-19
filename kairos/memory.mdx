@@ -1,11 +1,11 @@
 ---
 title: "Memory"
-description: "Inspect and manage the local memory store. Recall is automatic during cycles — these commands are for introspection."
+description: "Inspect and manage the local memory store. Recall is automatic during normal work — these commands are for introspection."
 ---
 
 Kairos's memory store lives at `~/.claude/kairos/memory/`. It is a single embedded database with both lexical and dense indexes co-located. Recall happens locally; no codebase content is sent to a third party.
 
-The daemon recalls automatically during cycles. These commands are for introspection, debugging, and one-off cleanups.
+Kairos recalls automatically during normal work. These commands are for introspection, debugging, and one-off cleanups.
 
 ## `backant memory init`
 
@@ -57,7 +57,7 @@ backant memory recall "auth token refresh" -k 5 --tier ltm
 | `-k <n>` | 10 | Number of hits to return |
 | `--tier` | `any` | `any`, `stm`, or `ltm` |
 
-Each hit shows a score (combining lexical, semantic, and lifecycle signals), tier, type, ID, and content preview. The agent uses the same recall surface during cycles via MCP.
+Each hit shows a score (combining lexical, semantic, and lifecycle signals), tier, type, ID, and content preview. The agent uses the same recall surface via MCP.
 
 ## `backant memory inspect`
 
@@ -117,7 +117,7 @@ Memory entries live in one of two tiers, with different lifecycle rules:
 
 | Tier | Purpose | Decay |
 |---|---|---|
-| **STM** (short-term) | In-session observations, retries, anomalies. Recent ground truth. | Fast. Entries that aren't reinforced collapse below the archive threshold within a small number of cycles. |
+| **STM** (short-term) | In-session observations, retries, anomalies. Recent ground truth. | Fast. Entries that aren't reinforced collapse below the archive threshold quickly. |
 | **LTM** (long-term) | Consolidated, durable facts: architecture decisions, conventions, distilled failure signatures. | Slow. Survives long periods of disuse. Only pruned by explicit promotion/demotion or the `prune_with_confirmation` MCP tool. |
 
 <Tip>

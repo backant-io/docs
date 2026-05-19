@@ -7,7 +7,7 @@ Kairos is local-first by design. This page is the canonical statement of what da
 
 ## What stays local
 
-Everything to do with memory, dream cycles, and policy lives on your machine.
+Everything to do with memory, dream passes, and policy lives on your machine.
 
 | Path | Contents |
 |---|---|
@@ -16,8 +16,8 @@ Everything to do with memory, dream cycles, and policy lives on your machine.
 | `~/.claude/kairos/models/` | Docker-managed local model cache. |
 | `~/.claude/kairos/dreams/` | Dream pipeline logs (per-dream timelines). |
 | `~/.claude/kairos/eval/` | Weekly eval reports and replay outputs. |
-| `~/.claude/kairos/.session/` | Cycle-scoped scratch state. |
-| `~/.claude/kairos/.state/` | Daemon state (PID, current cycle, etc.). |
+| `~/.claude/kairos/.session/` | Per-turn scratch state. |
+| `~/.claude/kairos/.state/` | Daemon state (PID, latest activity, etc.). |
 | `<workspace>/.backant.toml` | Per-project policy. Committed to your repo. |
 
 No codebase content is sent to BackAnt servers for memory operations. Embedding, indexing, and recall all happen on-host.
@@ -46,7 +46,7 @@ To be explicit, none of these ever leave your machine via Kairos:
 
 - Memory entries (STM or LTM content)
 - Embedding vectors
-- Dream-cycle outputs
+- Dream outputs
 - Eval report contents
 - File contents from your codebase that aren't already part of a Claude API call you would have made anyway
 - `.backant.toml` content
@@ -105,7 +105,7 @@ Restarting the daemon will rebuild session state from disk.
 
 Once the Docker image and embedding model are pulled, the local memory pipeline works offline. The two things that still need network are:
 
-1. **Claude API calls** — required for reasoning. Without these, no cycles run.
+1. **Claude API calls** — required for reasoning. Without these, no work happens.
 2. **Subscription heartbeat** — required at startup. After startup, brief outages are tolerated.
 
 If you need a fully air-gapped deployment, contact [support@backant.io](mailto:support@backant.io) — that's an enterprise scenario with a different shape.

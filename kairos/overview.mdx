@@ -1,34 +1,37 @@
 ---
 title: "Overview"
-description: "Kairos is an autonomous engineering loop that observes your repository, judges what to work on next, and ships the change — on a continuous cycle."
+description: "Kairos is an autonomous Claude Code harness. Keep Claude Code working on your repo around the clock — with memory that survives across sessions."
 ---
 
-Kairos is the autonomous engineer in the BackAnt suite. It runs locally on your machine and operates on a continuous **observe → judge → act** loop against any git repository you point it at.
+Kairos is the autonomous Claude Code harness in the BackAnt suite. It wraps your existing Claude Code installation and keeps it working against any git repository you point it at, on your own machine, without supervision.
 
 <Info>
   Kairos ships as the `backant-kairos` npm package. Most users install it via `npx backant-kairos` from inside the repo they want it to work on.
 </Info>
 
-## What a cycle looks like
+## What it does for you
 
-Each cycle of the loop:
+While you sleep, in another window, on a long flight — Claude Code is still working:
 
-1. **Observes** the workspace — open PRs, CI signals, recent commits, issues, prior agent traces.
-2. **Judges** the single highest-leverage next action.
-3. **Acts** — implements the change, opens a PR, runs verification, or hands back to you with reasoning.
+- **Closes your issue backlog.** Reads issues, implements them, opens PRs.
+- **Addresses PR review feedback.** Reviewer left a comment at 11pm? Patch ready by morning.
+- **Fixes failing CI.** When a check goes red, Claude Code investigates and pushes a fix.
+- **Applies refactors across the codebase.** Rename a field, update a convention — Claude Code carries it through every file.
+- **Catches regressions before they merge.** Reviews diffs against what it knows about the codebase, flags the ones that contradict prior decisions.
+- **Plans multi-PR work.** Breaks larger changes into shippable epics, sequences them, ships one at a time.
 
-Between cycles, Kairos sleeps for a configurable interval. Cycles never run in parallel for the same workspace.
+You wake up to a queue of PRs ready for your review.
 
-## What makes it different
+## What makes it different from vanilla Claude Code
 
-Two features distinguish Kairos from a stateless coding assistant:
+Two features:
 
 <CardGroup cols={2}>
   <Card title="Persistent memory" icon="brain">
-    Decisions, conventions, validated assumptions, and prior failures survive across sessions. Recall is hybrid — combining lexical, semantic, and lifecycle signals — and runs entirely on your machine.
+    Decisions, conventions, validated assumptions, and prior failures survive across sessions. Recall is hybrid — lexical, semantic, and lifecycle signals — and runs entirely on your machine.
   </Card>
   <Card title="Offline consolidation" icon="moon">
-    Periodically, Kairos runs a *dream cycle* — a structured pass that links related observations, distills durable lessons, and stages candidates for your review. Inspired by sleep-dependent memory consolidation.
+    Periodically, Kairos runs a *dream pass* — a structured consolidation that links related observations, distills durable lessons, and stages candidates for your review.
   </Card>
 </CardGroup>
 
@@ -36,7 +39,7 @@ Two features distinguish Kairos from a stateless coding assistant:
 
 Embeddings, indexing, and recall happen on your machine. No codebase content is sent to a third party for memory operations. The only outbound traffic is:
 
-- Reasoning calls to the Claude API via your existing Claude Code installation
+- Claude reasoning calls via your existing Claude Code installation
 - GitHub operations via `gh` against the repos you authenticate
 - A small periodic heartbeat to validate your BackAnt subscription
 
@@ -44,13 +47,13 @@ See [Privacy and data](/kairos/privacy) for the full breakdown.
 
 ## When to use it
 
-Kairos is meaningful when:
+Kairos pulls weight on long-running codebases where:
 
-- You have a long-running codebase where the same conventions need to be re-applied across many changes.
-- You have recurring engineering chores (fixing flaky tests, addressing PR feedback, applying small refactors) that are individually small but add up.
-- You want an agent that remembers what it learned yesterday and applies it today.
+- Conventions need to be re-applied across many changes
+- Recurring chores (flaky tests, PR feedback, refactors) add up
+- You want Claude Code to remember yesterday's decisions and apply them today
 
-It is less meaningful for one-shot exploration or for projects that change shape every week. For that, a chat-style coding assistant is the right fit.
+For one-shot exploration, a regular Claude Code session is the right fit.
 
 ## Next steps
 
@@ -59,6 +62,6 @@ It is less meaningful for one-shot exploration or for projects that change shape
     Install Kairos and walk through the first-run setup.
   </Card>
   <Card title="Daily use" icon="terminal" href="/kairos/daily-use">
-    Start, stop, watch, and inspect the daemon.
+    Start, stop, watch, and inspect the harness.
   </Card>
 </CardGroup>

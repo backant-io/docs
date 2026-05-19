@@ -5,23 +5,17 @@ description: "Enough technical hints to evaluate the design — not enough to re
 
 This page is intentionally shaped: enough detail for a technical reader to evaluate whether Kairos is real engineering rather than a marketing surface, without becoming a recipe for re-implementation. The specific tuning numbers (decay rates, scoring weights, pressure-trigger signals, dream-stage internals) are deliberately omitted — they are tuned ongoing and are not part of the public contract.
 
-## The loop
+## How it works at a glance
 
-Kairos runs a continuous **observe → judge → act** cycle. Each cycle:
+Kairos is a wrapper around your Claude Code installation. It keeps Claude Code working against your repository: reading recent activity, deciding what to pick up next, shipping the change, sleeping briefly, then doing it again. The wrapper is what makes it work at all without human attention — managing state between turns, pacing the request budget, and supplying persistent memory that Claude Code can read and write through MCP.
 
-- Reads recent activity from the workspace (open PRs, CI signals, commits, issues, prior agent traces)
-- Recalls relevant prior memory via the memory MCP server
-- Calls the reasoning model with a structured prompt that includes only what was recalled
-- Decides on a single next action
-- Acts: implements the change, opens a PR, runs verification, or hands back
-
-Cycles sleep between iterations. Sleep length is adaptive when `--pace` is set.
+Sleep length adapts when `--pace` is set to your Anthropic rate-limit headroom.
 
 ## The memory system
 
-Memory has two tiers with **asymmetric decay rates**:
+Memory has two tiers with **asymmetric decay**:
 
-- **STM** (short-term) — fast decay. Captures in-session observations, retries, anomalies. Entries that aren't reinforced collapse below the archive threshold within a small number of cycles.
+- **STM** (short-term) — fast decay. Captures in-session observations, retries, anomalies. Entries that aren't reinforced collapse below the archive threshold quickly.
 - **LTM** (long-term) — slow decay. Captures consolidated, durable facts: architecture decisions, conventions, distilled failure signatures. Survives long disuse.
 
 The two-tier asymmetric-decay design follows the **complementary learning systems** idea from cognitive science: a fast hippocampal-like store for current state, a slow neocortical-like store for durable knowledge. Catastrophic interference makes a single-rate store impractical at this scale.
@@ -37,7 +31,7 @@ Recall combines four signals via late fusion:
 | Entry weight | The entry's current lifecycle weight (decays over time, rises on citation) |
 | Recency | Exponential decay since the entry was last reinforced |
 
-The exact channel weights are tuned ongoing. No learned reranker is used in the current public build — late linear fusion alone, intentionally simple.
+The exact channel weights are tuned ongoing. No learned reranker — late linear fusion, intentionally simple.
 
 ### Local embeddings
 
@@ -45,11 +39,11 @@ Embeddings are produced by [Qwen3-Embedding](https://huggingface.co/Qwen) served
 
 No memory operation requires network outside the host.
 
-## The dream cycle
+## The dream pass
 
-A periodic offline pass that consolidates memory. Triggered by a **pressure score** that combines several operational signals (cycles since last dream, unresolved retries, observation novelty, log volume, plus others). When pressure crosses a threshold, the next cycle is a dream.
+A periodic offline consolidation. Triggered by a **pressure score** that combines several operational signals (work elapsed since last dream, unresolved retries, observation novelty, log volume, plus others). When pressure crosses a threshold, the next turn is a dream.
 
-A safety floor guarantees at least one dream every N cycles; an anti-thrash floor prevents back-to-back dreams.
+A safety floor guarantees a dream every N turns; an anti-thrash floor prevents back-to-back dreams.
 
 ### Pipeline shape
 
@@ -61,7 +55,7 @@ A safety floor guarantees at least one dream every N cycles; an anti-thrash floo
 5. Bucket-write + edge-propose     — stage candidates for the agent's review at wake
 ```
 
-Crucially, **the dream cycle never directly mutates long-term memory**. Its output is a set of staged candidates and proposed edges, which the agent triages on the next wake. This preserves the agent-in-the-loop property — consolidations happen only with explicit verdict.
+Crucially, **the dream pass never directly mutates long-term memory**. Its output is a set of staged candidates and proposed edges, which the agent triages on the next wake. Consolidations only become durable with explicit verdict.
 
 The two-stage analogy is to sleep-dependent consolidation: a slow-wave-style replay phase that finds the regularities, then a REM-style reflective phase that recombines them. Mileage on the analogy varies; treat it as inspiration rather than a load-bearing claim.
 
@@ -81,17 +75,16 @@ MCP-as-only-interface makes the memory system observable (every operation is a t
 
 ## Eval
 
-`backant eval` runs a fixed simulated-scenario replay against the current memory state alongside the production metrics. This is intentionally adversarial — small, fixed, deterministic — and designed to surface regressions in the memory layer that the live cycle wouldn't notice.
+`backant eval` executes a fixed simulated-scenario replay against the current memory state alongside the production metrics. Intentionally adversarial — small, fixed, deterministic — designed to surface regressions in the memory layer that live operation wouldn't notice.
 
 The replay corpus is curated and frozen per release. New scenarios are added when a real production issue would have been caught by one.
 
 ## Context hygiene
 
-Three complementary mechanisms keep the in-process state of the daemon fresh across long runs:
+Three complementary mechanisms keep the in-process state of the daemon fresh on long-lived deployments:
 
-- **`--fresh` flag**: manual escape hatch. Hard-resets `.session/` and `.state/` so the next cycle re-reads memory from disk.
-- **Freshness manager**: a small meta-agent that runs every few cycles and decides whether the next cycle should start fresh based on signals (repeated failures, lesson churn, decay patterns).
-- **Reactive overflow detector**: catches the Claude context-window overflow signature in cycle output and writes the fresh-flag automatically.
+- **`--fresh` flag**: manual escape hatch. Hard-resets `.session/` and `.state/` so the next turn re-reads memory from disk.
+- **Freshness manager**: a small meta-agent that periodically inspects recent signals (repeated failures, lesson churn, decay patterns) and decides whether the next turn should start fresh.
+- **Reactive overflow detector**: catches the Claude context-window overflow signature in the stream and writes the fresh-flag automatically.
 
-The freshness layer is itself configurable in `.backant.toml`. It exists because long-running daemons accumulate stale judgment in their in-process context, and the cheapest correction is "start the next cycle as if you'd just booted".
-
+The freshness layer is itself configurable in `.backant.toml`. Long-lived daemons accumulate stale judgment in their in-process context, and the cheapest correction is "start the next turn as if you'd just booted".

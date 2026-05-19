@@ -5,7 +5,7 @@ description: "Common failure modes and how to fix them."
 
 The first move is always `backant status`. It surfaces most failures with a clear next step. The rest of this page is for when `status` isn't enough.
 
-## Daemon won't start
+## Kairos won't start
 
 <AccordionGroup>
   <Accordion title="Subscription expired or inactive">
@@ -27,7 +27,7 @@ The first move is always `backant status`. It surfaces most failures with a clea
   </Accordion>
 
   <Accordion title="Stale .session / .state">
-    Symptom: daemon refuses to start, citing "session already in progress" or returns to a corrupt state on every cycle.
+    Symptom: Kairos refuses to start, citing "session already in progress" or returns to a corrupt state on every turn.
 
     Fix: `backant start --fresh` discards in-process state and re-reads memory from disk. Memory itself, config, and lessons are preserved.
 
@@ -55,7 +55,7 @@ The first move is always `backant status`. It surfaces most failures with a clea
   <Accordion title="Recall returns nothing useful">
     Three causes in order of likelihood:
 
-    1. **Empty memory.** A brand-new install has nothing to recall. Memory accumulates over the first few cycles.
+    1. **Empty memory.** A brand-new install has nothing to recall. Memory accumulates as Kairos works.
     2. **Wrong tier.** Try `backant memory recall "<cue>" --tier any`.
     3. **Stale embeddings.** If you switched models via `memory init` without running `memory reindex`, the stored vectors don't match the new model's dimensionality.
 
@@ -87,7 +87,7 @@ The first move is always `backant status`. It surfaces most failures with a clea
     backant memory stats
     ```
 
-    If LTM is bloated with consolidated facts that are no longer relevant, the wake-time triage tools (`memory_promote`, `memory_demote`, `prune_with_confirmation`) handle pruning. The agent runs these as part of its normal cycle.
+    If LTM is bloated with consolidated facts that are no longer relevant, the wake-time triage tools (`memory_promote`, `memory_demote`, `prune_with_confirmation`) handle pruning. Kairos invokes these as part of normal operation.
 
     Manual pruning is rarely needed.
   </Accordion>
@@ -96,24 +96,24 @@ The first move is always `backant status`. It surfaces most failures with a clea
 ## Cost issues
 
 <AccordionGroup>
-  <Accordion title="Cycles burning too many tokens">
+  <Accordion title="Kairos is burning too many tokens">
     Three things to try, in order of impact:
 
-    1. **Throttle**: `backant start --pace`. Auto-stretches sleep when rate-limit utilization is high.
-    2. **Lower the per-cycle cap**: drop `max_cost_per_cycle` in `.backant.toml` from `15.0` to `5.0`.
-    3. **Inspect**: `backant eval run --window-days 3` shows you which cycles are expensive and why.
+    1. **Throttle**: `backant start --pace`. Auto-stretches the pause between turns when rate-limit utilization is high.
+    2. **Lower the per-turn cap**: drop `max_cost_per_cycle` in `.backant.toml` from `15.0` to `5.0`.
+    3. **Inspect**: `backant eval run --window-days 3` shows you which turns are expensive and why.
   </Accordion>
 
-  <Accordion title="Hitting the daily cycle cap">
-    `max_cycles_per_day = 100` is the default safety cap. The daemon stops for the day when it's hit and resumes at local midnight.
+  <Accordion title="Hitting the daily cap">
+    `max_cycles_per_day = 100` is the default safety cap. Kairos stops for the day when it's hit and resumes at local midnight.
 
-    Most workspaces don't approach 100 cycles/day. If you're hitting it, that's a signal the loop is spinning — either:
+    Most workspaces don't approach 100/day. If you're hitting it, something is off — either:
 
     - The repo is unusually busy
-    - Cycles are completing trivially without doing work (memory not loading, network flapping)
+    - Turns are completing trivially without doing work (memory not loading, network flapping)
     - You set the cap unusually low
 
-    `backant eval report` will show whether cycles are productive.
+    `backant eval report` will show whether work is productive.
   </Accordion>
 </AccordionGroup>
 
@@ -121,7 +121,7 @@ The first move is always `backant status`. It surfaces most failures with a clea
 
 <AccordionGroup>
   <Accordion title="Kairos can't open PRs">
-    Symptom: cycle reports "gh: not authenticated" or PR-create fails.
+    Symptom: turn reports "gh: not authenticated" or PR-create fails.
 
     Fix: `gh auth status` to verify, `gh auth login` if needed. Kairos uses your existing `gh` token.
   </Accordion>
@@ -152,7 +152,7 @@ The first move is always `backant status`. It surfaces most failures with a clea
   </Accordion>
 </AccordionGroup>
 
-## Daemon got into a bad state
+## Kairos got into a bad state
 
 The nuclear option:
 
@@ -175,4 +175,4 @@ When reporting, include:
 
 - Output of `backant status` and `backant memory stats`
 - The contents of `.backant.toml` (no secrets — it's policy)
-- The relevant section of `~/.claude/kairos/logs/` for the time-of-incident
+- The relevant section of `~/.claude/kairos/logs/` for the time of the incident

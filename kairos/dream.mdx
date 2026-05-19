@@ -1,19 +1,19 @@
 ---
-title: "Dream cycle"
+title: "Dream pass"
 description: "Inspect Kairos's offline consolidation pipeline."
 ---
 
-Periodically, the daemon runs an **offline consolidation pass** — the *dream cycle*. It is structurally analogous to sleep-dependent memory consolidation: a structured pass that samples related observations, finds non-obvious connections, distills durable lessons, and **stages** candidates for the agent's next wake-time review.
+Periodically, Kairos pauses ordinary work and **consolidates memory** — a structured offline pass we call a *dream*. It is structurally analogous to sleep-dependent memory consolidation: sample related observations, find non-obvious connections, distill durable lessons, **stage** the result for the agent's next wake-time review.
 
 <Info>
-  Dreams do **not** mutate long-term memory directly. They produce candidates that the agent accepts or rejects on the next cycle. You always have an opportunity to review before consolidations become durable.
+  Dreams do **not** mutate long-term memory directly. They produce candidates that the agent accepts or rejects on the next wake. You always have an opportunity to review before consolidations become durable.
 </Info>
 
 ## When dreams fire
 
-Dreams are triggered by a *pressure score* that combines several operational signals (cycles since last dream, unresolved retries, observation novelty, log volume, and a few more). When pressure crosses a threshold, the next cycle runs a dream pass.
+Dreams are triggered by a *pressure score* that combines several operational signals (work elapsed since last dream, unresolved retries, observation novelty, log volume, a few more). When pressure crosses a threshold, the next turn is a dream.
 
-A safety floor guarantees a dream at least every N cycles even if pressure is low, and an anti-thrash floor prevents dreams from running too frequently. The exact thresholds are tuned ongoing.
+A safety floor guarantees a dream every N turns even when pressure is low; an anti-thrash floor prevents back-to-back dreams. Thresholds are tuned ongoing.
 
 ## `backant dream stats`
 
@@ -23,14 +23,14 @@ Summary of recent dreams:
 backant dream stats
 ```
 
-For each recent dream, you see:
+For each recent dream:
 
-- When it ran
+- When it happened
 - How many candidate consolidations were produced
 - How many edge proposals were made
 - How many were accepted vs. rejected during the next wake-time review
 
-Use this to verify the consolidation pipeline is actually doing work. A long stretch with no dreams + lots of unresolved retries is a sign that pressure signals aren't firing correctly.
+Use this to verify the consolidation pipeline is actually doing work. A long stretch with no dreams plus lots of unresolved retries is a sign that pressure signals aren't firing correctly.
 
 ## `backant dream replay`
 
@@ -64,7 +64,7 @@ The pipeline is deliberately advisory. Anything that lands in durable memory has
 
 ## Reviewing dream output
 
-You don't normally need to review dream output by hand — the next cycle does that automatically via the `wake_edge_triage` and dream-bucket verdict tools. But if you want to:
+You don't normally need to review dream output by hand — Kairos does that automatically on the next wake via the `wake_edge_triage` and dream-bucket verdict tools. But if you want to:
 
 ```bash
 backant memory stats              # see dream_bucket_pending count
@@ -75,10 +75,10 @@ If a recent dream produced consolidations you disagree with, the next wake-time 
 
 ## Why offline?
 
-Mutating memory on every write would couple every observation to a reasoning pass — expensive and noisy. Batching consolidation work into structured offline passes:
+Mutating memory on every write would couple every observation to a reasoning pass — expensive and noisy. Batching consolidation into structured offline passes:
 
-- Keeps the live cycle fast (cycles don't pay the cost of consolidation)
-- Lets the consolidation use a stronger reasoning model than the live cycle
+- Keeps live work fast (no consolidation cost paid on the critical path)
+- Lets the consolidation use a stronger reasoning model than live work
 - Mirrors how biological consolidation actually works during sleep
 
 The [architecture page](/kairos/architecture) goes a little deeper on the design intent.
