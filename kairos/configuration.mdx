@@ -3,7 +3,22 @@ title: "Configuration"
 description: "The .backant.toml file controls per-project policy: what Kairos can do, where it can do it, and what it costs."
 ---
 
-`backant setup` generates a `.backant.toml` at the root of each project. This file is the **only** place you change Kairos's per-project behaviour. The file is committed to your repo and added to `CODEOWNERS` during setup so policy changes route to you for review.
+`backant setup` generates a `.backant.toml` at the root of each project. This file is the **only** place Kairos's per-project behaviour lives. It is committed to your repo and added to `CODEOWNERS` during setup so policy changes route to you for review.
+
+You can edit it by hand, or change keys through the CLI, which validates the value, rewrites the file, and records who changed what:
+
+```bash
+backant ctl config status --json                 # every key with value, default, and whether it was answered
+backant ctl config set permissions.merge true    # one key; takes effect on the next turn
+backant ctl config get behavior.max_cost_per_cycle --json
+backant ctl config schema --json                 # the full contract: type, default, question, why
+```
+
+A host agent uses the same verbs to interview you key by key; see [Let your agent run Kairos](/kairos/agents).
+
+<Warning>
+  `ctl config set` rewrites the whole file from the contract. Hand-written comments and unknown keys are dropped and reported in the envelope's `dropped` list.
+</Warning>
 
 ## Default `.backant.toml`
 
@@ -32,6 +47,20 @@ deploy_verification = "full"
 [branches]
 target = "main"
 prefix = "kairos/"
+
+[freshness_manager]
+enabled = true
+cadence_cycles = 3
+model = "claude-sonnet-4-6"
+
+[dream_tools]
+enabled = true
+model = "claude-sonnet-4-6"
+
+[gates]
+actions = ["git_push", "pr_create"]
+timeout_minutes = 60
+timeout_policy = "requeue"
 ```
 
 ## `[permissions]`
@@ -80,7 +109,7 @@ Safety caps and pacing.
 | `max_cycles_per_day` | `100` | Daily safety cap. Kairos stops for the day after this. Rolls over at local midnight. |
 | `max_cost_per_cycle` | `15.0` | USD cap per turn. Aborts anything that would exceed. |
 | `min_sleep` | `10` | Seconds between turns. Overridden by `--turbo` and `--pace` flags on `backant start`. |
-| `deploy_verification` | `"full"` | `"full"` enforces the deploy-verification gate; `"fast"` skips slow checks; `"off"` disables. |
+| `deploy_verification` | `"full"` | After a merge to the target branch: `"full"` waits for the deploy workflow, the rollout, and a health check; `"workflow_only"` waits for the workflow only; `"disabled"` moves on right after the merge. |
 
 <Tip>
   The cheapest turn on a small repo is roughly $0.10–$0.50. Most land between $1 and $5. `max_cost_per_cycle = 15.0` is generous; if you're seeing high bills, lower it to 5.0 and inspect with `backant eval run`.
@@ -95,16 +124,38 @@ PR strategy.
 | `target` | `"main"` | Base branch for Kairos-created PRs. |
 | `prefix` | `"kairos/"` | Branch prefix. Helps you filter Kairos's work from your own. |
 
+## `[gates]`
+
+Actions that always wait for a human yes, even when a permission would allow them.
+
+| Key | Default | Notes |
+|---|---|---|
+| `actions` | `["git_push", "pr_create"]` | Action classes that park as a gate. Answer with `backant ctl gate answer <id> --approve` or `--deny --reason ...`. Empty list: nothing waits. |
+| `timeout_minutes` | `60` | How long a gate may wait for an answer. |
+| `timeout_policy` | `"requeue"` | `"requeue"` brings the action back as a new gate on a later turn; `"auto_deny"` drops it and records a denial. |
+
+## `[freshness_manager]`
+
+A small helper that periodically re-checks that memory still matches the repo.
+
+| Key | Default | Notes |
+|---|---|---|
+| `enabled` | `true` | Turn the helper off to save the extra calls. |
+| `cadence_cycles` | `3` | Main turns between freshness checks. |
+| `model` | `"claude-sonnet-4-6"` | Model id for the check. |
+
+## `[dream_tools]`
+
+Offline memory consolidation. See [Dream pass](/kairos/dream).
+
+| Key | Default | Notes |
+|---|---|---|
+| `enabled` | `true` | Whether dream passes run when sleep pressure builds. |
+| `model` | `"claude-sonnet-4-6"` | Model id for dream passes. |
+
 ## Reloading policy
 
-Edits to `.backant.toml` are **not** picked up by a running daemon. Restart with `--fresh` so the new policy is applied immediately:
-
-```bash
-backant stop
-backant start --fresh
-```
-
-The reset is hard but bounded — only in-process judgment is dropped. Memory, lessons, learnings, dream state, and eval reports are preserved.
+Edits to `.backant.toml` take effect on the next turn. The daemon rebuilds its permissions block from the file before every turn, so no restart is needed.
 
 ## Common adjustments
 

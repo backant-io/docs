@@ -41,7 +41,7 @@ Embeddings, indexing, and recall happen on your machine. No codebase content is 
 
 - Claude reasoning calls via your existing Claude Code installation
 - GitHub operations via `gh` against the repos you authenticate
-- A small periodic heartbeat to validate your BackAnt subscription
+- A small call to backant.io when the daemon starts, to check your account token. Kairos is free; there is no subscription.
 
 See [Privacy and data](/kairos/privacy) for the full breakdown.
 
@@ -63,5 +63,8 @@ For one-shot exploration, a regular Claude Code session is the right fit.
   </Card>
   <Card title="Daily use" icon="terminal" href="/kairos/daily-use">
     Start, stop, watch, and inspect the harness.
+  </Card>
+  <Card title="Let your agent run it" icon="robot" href="/kairos/agents">
+    Install one skill and Claude Code, Codex, pi, or Hermes sets Kairos up, decides with you what it may do, and hands it work.
   </Card>
 </CardGroup>

@@ -52,7 +52,7 @@ One-shot snapshot. Exits cleanly. Suitable for scripting (CI checks, dashboards)
 
 - Whether Kairos is active
 - Workspace, latest activity, last outcome
-- Subscription validity
+- Account validity
 - Recent memory growth
 - Pending dream-bucket items
 
@@ -63,7 +63,7 @@ backant login                    # browser auth flow
 backant logout                   # clear stored credentials
 ```
 
-Re-run `login` after a subscription renewal or account switch. Credentials persist across reboots under `~/.claude/kairos/`.
+Re-run `login` after an account switch, or when `backant start` reports that the account check failed. Credentials persist across reboots under `~/.claude/kairos/`.
 
 ## Per-workspace vs. user-level state
 
@@ -76,14 +76,26 @@ Memory is intentionally user-level rather than per-workspace — observations ab
 
 ## Configuration reload
 
-Editing `.backant.toml` while Kairos is active does **not** auto-reload the policy. Restart with `--fresh` to ensure the new policy takes effect immediately:
+Changes to `.backant.toml` take effect on the next turn. The daemon rebuilds its permissions block from the file before every turn, so no restart is needed. `--fresh` is only for discarding in-process judgment; it does not affect policy.
+
+See [Configuration](/kairos/configuration) for the full `.backant.toml` schema, and [Let your agent run Kairos](/kairos/agents) for changing keys through `backant ctl config`.
+
+## Steering, configuring, and tasking
+
+`backant ctl` is the control plane. Every verb takes `--json` and answers with one envelope line, which is what host agents and scripts use.
 
 ```bash
-backant stop
-backant start --fresh
+backant ctl status --json                       # daemon state, open gates, pending directives
+backant ctl task "Fix flaky CI" --json          # file a kairos-task issue and pin it
+backant ctl steer focus "the billing module"    # focus | pin | ban | goal | pause | resume
+backant ctl gate list --status open --json      # actions parked for your yes
+backant ctl gate answer <id> --approve --json
+backant ctl explain --json                      # why the last decision was taken
+backant ctl config status --json                # is the policy interview complete
+backant ctl config set permissions.merge true   # change one key, recorded with who and when
 ```
 
-See [Configuration](/kairos/configuration) for the full `.backant.toml` schema.
+`backant tui` wraps the same verbs in an interactive view. Install the skill (`backant skill install --all`) and your coding agent drives these for you; see [Let your agent run Kairos](/kairos/agents).
 
 ## Quick reference
 
@@ -97,6 +109,8 @@ backant stop                     # stop Kairos
 backant watch                    # live event feed
 backant status                   # one-shot snapshot
 
+backant ctl <verb>               # status, task, steer, gate, explain, config, events, board
+backant skill install --all      # teach Claude Code, Codex, pi, Hermes to drive Kairos
 backant memory <sub>             # see /kairos/memory
 backant dream <sub>              # see /kairos/dream
 backant eval <sub>               # see /kairos/eval
