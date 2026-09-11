@@ -1,0 +1,156 @@
+---
+title: "Let your agent run Kairos"
+description: "Install one skill and your coding agent (Claude Code, Codex, pi, or Hermes) can set Kairos up, decide with you what it may do, and hand it work."
+---
+
+Kairos ships a skill file that teaches a host agent everything it needs: how to install Kairos, how to interview you about what it may do, how to give it a task, and how to read what it did. The file is generated from the same contracts the `backant` CLI executes, so what your agent reads and what the CLI does cannot drift.
+
+<Info>
+  Needs `backant-kairos` 1.6.0 or newer. Run `npx backant-kairos@latest` if you installed earlier.
+</Info>
+
+## Install the skill
+
+Install once per machine, where your agent discovers skills:
+
+<Tabs>
+  <Tab title="Every host on this machine">
+    ```bash
+    backant skill install --all
+    ```
+
+    Writes the skill for every host that is present and reports the others as skipped.
+  </Tab>
+  <Tab title="Claude Code">
+    ```bash
+    backant skill install --host claude
+    ```
+
+    Path: `~/.claude/skills/backant-kairos-control/SKILL.md`
+  </Tab>
+  <Tab title="Codex">
+    ```bash
+    backant skill install --host codex
+    ```
+
+    Path: `~/.codex/skills/backant-kairos-control/SKILL.md`
+  </Tab>
+  <Tab title="pi">
+    ```bash
+    backant skill install --host pi
+    ```
+
+    Path: `~/.pi/agent/skills/backant-kairos-control/SKILL.md`. Any path also loads with `pi --skill <path>`.
+  </Tab>
+  <Tab title="Hermes">
+    ```bash
+    backant hermes install
+    ```
+
+    Writes the same file into your Hermes home and runs a round-trip self-test. `backant skill install --host hermes` writes the file without the self-test. For a machine with nothing on it yet, `curl -fsSL https://backant.io/hermes.sh | bash` does the whole bootstrap.
+  </Tab>
+</Tabs>
+
+Re-run after upgrading `backant-kairos`. The install is idempotent; an unchanged file is left alone.
+
+## What to say to your agent
+
+Open your agent inside the repository and talk to it. The skill tells it which commands to run.
+
+| You say | Your agent does |
+|---|---|
+| "Set up Kairos for this repo." | Runs the bootstrap: install, prerequisites, memory, login (it relays the device code to you), setup with safe defaults, daemon start. Then starts the interview below. |
+| "Decide with me what Kairos may do." | Runs the interview: one question per key, with the reason and the current value, until every key has your answer. |
+| "Give Kairos this task: fix the flaky CI on main." | Files a GitHub issue labeled `kairos-task` and pins it, so Kairos takes it on its next turn. Reports the issue URL. |
+| "What is Kairos doing?" or "Why did it do that?" | Reads `backant ctl status --json` and `backant ctl explain --json` and answers from the recorded decisions. |
+| "Anything waiting for me?" | Lists open gates (actions parked for your approval) and relays your answer. |
+
+## How the interview works
+
+Setup writes `.backant.toml` with safe defaults: no merging, no CI or infrastructure edits, gates on push and PR creation. The interview turns those defaults into your decisions.
+
+<Steps>
+  <Step title="Status first">
+    The agent runs `backant ctl config status --json`. Every key comes back with its value, its default, and a source: `default` (unanswered), `answered` (you decided), or `skipped` (does not apply right now, for example `merge_migrations` while `merge` is false).
+  </Step>
+  <Step title="One question per turn">
+    For each unanswered key, in order, the agent asks the key's question in your chat, tells you why it matters and what the current value is, and offers keeping it as an answer.
+  </Step>
+  <Step title="Every answer is written and recorded">
+    `backant ctl config set <key> <value> --issuer <agent name> --json` rewrites the file and logs who answered and when. Keeping the current value or saying "you decide" still writes it, so it counts as answered.
+  </Step>
+  <Step title="Stop when complete">
+    The agent re-runs `status` until `complete` is `true` and `problems` is empty, then summarizes what Kairos may now do.
+  </Step>
+</Steps>
+
+Changes apply on the next turn. No restart.
+
+The answers are yours to audit: `backant ctl events --type config_answered --json` lists every answer with issuer and time, and `backant ctl config get <key> --json` shows who set a key.
+
+<Warning>
+  `ctl config set` rewrites the whole file from the contract. Hand-written comments and unknown keys are dropped, and the envelope lists them under `dropped`. Change the file through the CLI, not by hand, once your agent manages it.
+</Warning>
+
+## Give Kairos a task
+
+```bash
+backant ctl task "Fix the flaky integration test on main" --body "Done when CI is green three runs in a row" --issuer codex --json
+```
+
+This creates a GitHub issue in the repo, labeled `kairos-task`, and pins it as a directive. The envelope returns the issue number, its URL, and the directive id. Needs `gh` installed and authenticated.
+
+To see it picked up: `backant ctl status --json` shows pending directives, and once Kairos has taken it, `backant ctl explain --json` shows the decision that did.
+
+## The config contract
+
+Every key your agent can ask about, in the order it asks. Live copy: `backant ctl config schema --json`.
+
+| Key | Type | Default | Ask only if | The question your agent asks |
+|---|---|---|---|---|
+| `permissions.merge` | boolean | `false` |  | May Kairos merge its own pull requests without a human clicking merge? |
+| `permissions.merge_migrations` | boolean | `false` | `permissions.merge` equals `true` | May Kairos also merge PRs that contain database migrations? |
+| `permissions.create_issues` | boolean | `true` |  | May Kairos file GitHub issues for bugs and anomalies it finds? |
+| `permissions.create_epics` | boolean | `true` |  | May Kairos plan multi-story epics for feature requests? |
+| `permissions.strategic_work` | boolean | `true` |  | May Kairos propose and build features it discovers on its own, not just what is in issues? |
+| `permissions.modify_dependencies` | boolean | `true` |  | May Kairos add or upgrade dependencies? |
+| `permissions.modify_ci` | boolean | `false` |  | May Kairos edit CI workflows under .github/workflows? |
+| `permissions.modify_infrastructure` | boolean | `false` |  | May Kairos edit infrastructure files such as terraform, Dockerfile, or docker-compose? |
+| `permissions.security_fixes` | boolean | `true` |  | May Kairos run security scans and fix the vulnerabilities it finds? |
+| `scope.include` | string[] | `[]` |  | Should Kairos be limited to certain paths? Give glob patterns, or leave empty for the whole repo. |
+| `scope.exclude` | string[] | `[".github/workflows/**", "terraform/**", "*.tfvars"]` |  | Which paths must Kairos never touch? Give glob patterns. |
+| `behavior.max_cycles_per_day` | number | `100` |  | How many observe-judge-act cycles may Kairos run per day? 0 means unlimited. |
+| `behavior.max_cost_per_cycle` | number | `15` |  | What is the maximum spend per cycle in USD? 0 means unlimited. |
+| `behavior.min_sleep` | number | `10` |  | What is the shortest pause in seconds between cycles? |
+| `behavior.deploy_verification` | enum (full / workflow_only / disabled) | `"full"` |  | After a merge to the target branch, how should Kairos verify the deploy? |
+| `branches.target` | string | `"main"` |  | Which branch should Kairos open pull requests against? |
+| `branches.prefix` | string | `"kairos/"` |  | What prefix should Kairos use for its branch names? |
+| `freshness_manager.enabled` | boolean | `true` |  | Should the freshness manager run? It periodically re-checks that Kairos' memory matches the repo. |
+| `freshness_manager.cadence_cycles` | number | `3` | `freshness_manager.enabled` equals `true` | How many main cycles between freshness checks? |
+| `freshness_manager.model` | string | `"claude-sonnet-4-6"` | `freshness_manager.enabled` equals `true` | Which model should the freshness manager use? |
+| `dream_tools.enabled` | boolean | `true` |  | Should dream cycles run? They consolidate memory when sleep pressure builds. |
+| `dream_tools.model` | string | `"claude-sonnet-4-6"` | `dream_tools.enabled` equals `true` | Which model should dream cycles use? |
+| `gates.actions` | string[] | `["git_push", "pr_create"]` |  | Which actions must wait for a human yes before Kairos does them? Known classes: git_push, pr_create. |
+| `gates.timeout_minutes` | number | `60` | `gates.actions` is not `[]` | How long may a gate wait for an answer, in minutes? |
+| `gates.timeout_policy` | enum (requeue / auto_deny) | `"requeue"` | `gates.actions` is not `[]` | When a gate times out, should Kairos requeue the action for later or treat it as denied? |
+
+Values are typed. Booleans are `true` or `false`, arrays are JSON (`'["src/**"]'`), enums must be one of the listed values. Strings cannot contain commas, quotes, hashes, or control characters, and numbers must be plain non-negative decimals, because the file is read line by line. A value the reader could not read back is rejected before it is written.
+
+## Read the skill yourself
+
+```bash
+backant skill doc
+```
+
+Prints the exact document your agent installed. A copy of the current release is served at [backant.io/kairos/SKILL.md](https://backant.io/kairos/SKILL.md). Do not edit the file by hand; the next `skill install` overwrites it.
+
+## For agent authors
+
+Every `backant ctl` verb takes `--json` and answers with exactly one line:
+
+```json
+{"schema_version": 1, "ok": true, "data": { }}
+{"schema_version": 1, "ok": false, "error": {"code": "bad_input", "message": "...", "hint": "a runnable command"}}
+```
+
+Exit code 0 on success, 2 for `bad_input` and `not_a_workspace`, 3 for `not_found`, 4 for a state conflict, 1 for anything unexpected. The `hint` is always something the agent can run next. The full table of verbs, flags, and examples is in the skill file; each example there is executed by the CLI's own test suite.

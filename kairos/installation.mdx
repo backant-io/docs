@@ -26,7 +26,7 @@ The first run walks you through four steps automatically: login, project setup, 
 | [Claude Code](https://claude.ai/code) installed and signed in | Kairos uses your Claude Code installation for reasoning calls. |
 | [GitHub CLI](https://cli.github.com/) (`gh`) authenticated | For PR operations and CI introspection. |
 | [Docker](https://www.docker.com/) running | Hosts the local embedding service. |
-| Active BackAnt subscription | Validated on daemon start. |
+| A free [backant.io](https://backant.io) account | Created on first login (Google sign-in). Kairos is free; the account only identifies you. |
 
 ## The first-run wizard
 
@@ -34,7 +34,7 @@ The first run walks you through four steps automatically: login, project setup, 
 
 <Steps>
   <Step title="Login">
-    Opens a browser auth flow against backant.io to issue credentials. Credentials persist across reboots under `~/.claude/kairos/`.
+    Opens a browser auth flow against backant.io to issue credentials. Credentials persist across reboots under `~/.claude/kairos/`. On a headless machine, `backant login --device` prints a code to enter from any browser.
 
     ```bash
     backant login
@@ -77,6 +77,14 @@ Once the wizard has run once per workspace, you only need `backant start` to res
 ```bash
 cd /path/to/your/repo
 backant
+```
+
+## Or let your agent install it
+
+If you already work with Claude Code, Codex, pi, or Hermes, install the Kairos skill once and tell your agent "Set up Kairos for this repo". It runs every step above, relays the login code to you, and then interviews you about what Kairos may do. See [Let your agent run Kairos](/kairos/agents).
+
+```bash
+backant skill install --all
 ```
 
 ## Re-running setup

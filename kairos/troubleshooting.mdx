@@ -8,10 +8,10 @@ The first move is always `backant status`. It surfaces most failures with a clea
 ## Kairos won't start
 
 <AccordionGroup>
-  <Accordion title="Subscription expired or inactive">
-    Symptom: `backant start` says "Backant requires an active subscription".
+  <Accordion title="Account check failed">
+    Symptom: `backant start` says "Account check failed" and asks you to run `backant login` again.
 
-    Fix: re-run `backant login`. If the subscription is genuinely lapsed, renew at [backant.io](https://backant.io).
+    Fix: re-run `backant login` (or `backant login --device` on a headless machine). Kairos is free; there is no subscription to renew. If login succeeds and start still fails, the stored token was revoked: `backant logout` then `backant login`.
   </Accordion>
 
   <Accordion title="Docker not running">

@@ -35,8 +35,8 @@ Three outbound traffic surfaces:
     PR operations, comments, and CI queries go via the `gh` CLI against the repos you've authenticated. Kairos uses your existing GitHub token; no separate credentials are required.
   </Card>
 
-  <Card title="Subscription heartbeat (backant.io)" icon="key">
-    A small periodic call validates your subscription is active. Sends: an auth token, a heartbeat timestamp. Does not send: codebase content, memory entries, prompt content, or any user data beyond the auth token.
+  <Card title="Account check (backant.io)" icon="key">
+    A small call when the daemon starts checks that your account token is still valid. Sends: the auth token. Does not send: codebase content, memory entries, prompt content, or any user data beyond the token. Kairos is free; this is not a subscription check.
   </Card>
 </CardGroup>
 
@@ -106,6 +106,6 @@ Restarting the daemon will rebuild session state from disk.
 Once the Docker image and embedding model are pulled, the local memory pipeline works offline. The two things that still need network are:
 
 1. **Claude API calls** — required for reasoning. Without these, no work happens.
-2. **Subscription heartbeat** — required at startup. After startup, brief outages are tolerated.
+2. **Account check**: required at startup. After startup, brief outages are tolerated.
 
 If you need a fully air-gapped deployment, contact [support@backant.io](mailto:support@backant.io) — that's an enterprise scenario with a different shape.

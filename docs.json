@@ -61,7 +61,8 @@
             "group": "Get started",
             "pages": [
               "kairos/overview",
-              "kairos/installation"
+              "kairos/installation",
+              "kairos/agents"
             ]
           },
           {

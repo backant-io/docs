@@ -4,3 +4,14 @@ description: "Release history for BackAnt CLI and MCP Server."
 ---
 
 All notable changes to BackAnt will be documented here.
+
+## backant-kairos
+
+### Unreleased
+
+- Kairos is free for every backant.io account. The API no longer checks a subscription tier; `backant login` and `backant start` check only that your token is valid.
+- New page [Let your agent run Kairos](/kairos/agents): install one skill and Claude Code, Codex, pi, or Hermes sets Kairos up, interviews you about every `.backant.toml` key, and files tasks for it.
+- `backant ctl config schema | get | set | status`: change policy keys through the CLI with validation and a record of who answered.
+- `backant ctl task "<title>"`: file a `kairos-task` issue and pin it for the next turn.
+- `backant skill doc | install`: the generated control skill for host agents.
+- Docs corrections: `.backant.toml` changes apply on the next turn without a restart; `deploy_verification` values are `full`, `workflow_only`, `disabled`; the `[gates]`, `[freshness_manager]`, and `[dream_tools]` sections are documented.
